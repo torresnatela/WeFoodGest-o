@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+apps/web/.next/
+apps/web/out/
+
+# env (apps/web/.env is committed on purpose: local-only Docker defaults, no real secrets)
+.env.local
+.env.*.local
+.env.production
+
+# logs
+npm-debug.log*
+*.log
+
+# os
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+
+# docker
+postgres-data/

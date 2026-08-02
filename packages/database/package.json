@@ -1,0 +1,23 @@
+{
+  "name": "@wefood/database",
+  "private": true,
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./migrator": "./src/migrator.js"
+  },
+  "scripts": {
+    "migrations:create": "node-pg-migrate create -j js",
+    "migrations:up": "dotenv -e ../../apps/web/.env -- node-pg-migrate -j js up",
+    "migrations:down": "dotenv -e ../../apps/web/.env -- node-pg-migrate -j js down"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "node-pg-migrate": "^9.0.0"
+  }
+}

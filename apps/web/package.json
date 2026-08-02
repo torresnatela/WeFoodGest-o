@@ -1,0 +1,30 @@
+{
+  "name": "@wefood/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3010",
+    "build": "next build",
+    "start": "next start -p 3010",
+    "lint": "eslint",
+    "test": "concurrently --kill-others --success first --names NEXT,JEST -c green,magenta \"next dev -p 3010\" \"jest --runInBand --verbose\"",
+    "test:watch": "concurrently --kill-others --success first --names NEXT,JEST -c green,magenta \"next dev -p 3010\" \"jest --watch --runInBand --verbose\""
+  },
+  "dependencies": {
+    "@wefood/database": "*",
+    "bcryptjs": "^3.0.3",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "async-retry": "^1.3.3",
+    "concurrently": "^10.0.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "jest": "^30.4.2",
+    "jest-environment-node": "^30.4.1",
+    "tailwindcss": "^4"
+  }
+}
