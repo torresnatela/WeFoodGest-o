@@ -11,6 +11,7 @@ beforeAll(async () => {
 describe("DELETE /api/v1/sessions", () => {
   test("invalidates the current session and clears the cookie", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "logout@wefood.com.br",
       password: "senha-segura",
     });

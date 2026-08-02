@@ -10,6 +10,7 @@ beforeAll(async () => {
 describe("user.findByEmail()", () => {
   test("returns the user when the email exists", async () => {
     await user.create({
+      name: "Usuária de teste",
       email: "encontrada@wefood.com.br",
       password: "senha-segura",
     });

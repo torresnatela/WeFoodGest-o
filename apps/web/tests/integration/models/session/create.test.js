@@ -11,6 +11,7 @@ beforeAll(async () => {
 describe("session.create()", () => {
   test("creates a session with a token that expires 30 days from now", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "sessao@wefood.com.br",
       password: "senha-segura",
     });

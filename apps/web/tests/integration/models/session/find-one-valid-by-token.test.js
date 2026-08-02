@@ -12,6 +12,7 @@ beforeAll(async () => {
 describe("session.findOneValidByToken()", () => {
   test("returns the session when the token is valid and not expired", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "valida@wefood.com.br",
       password: "senha-segura",
     });
@@ -30,6 +31,7 @@ describe("session.findOneValidByToken()", () => {
 
   test("returns null when the token is expired", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "expirada@wefood.com.br",
       password: "senha-segura",
     });

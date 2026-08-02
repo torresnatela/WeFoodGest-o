@@ -11,6 +11,7 @@ beforeAll(async () => {
 describe("GET /api/v1/user", () => {
   test("with a valid session, returns the authenticated user without the password", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "logado@wefood.com.br",
       password: "senha-segura",
     });
@@ -36,6 +37,7 @@ describe("GET /api/v1/user", () => {
 
   test("with an expired session, returns 401", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "expirado@wefood.com.br",
       password: "senha-segura",
     });

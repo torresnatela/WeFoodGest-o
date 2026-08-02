@@ -10,6 +10,7 @@ beforeAll(async () => {
 describe("user.create()", () => {
   test("creates a user with the password hashed", async () => {
     const createdUser = await user.create({
+      name: "Usuária de teste",
       email: "loja@wefood.com.br",
       password: "senha-segura",
     });
@@ -21,12 +22,14 @@ describe("user.create()", () => {
 
   test("rejects a duplicate email", async () => {
     await user.create({
+      name: "Usuária de teste",
       email: "duplicado@wefood.com.br",
       password: "senha-segura",
     });
 
     await expect(
       user.create({
+        name: "Outra usuária de teste",
         email: "duplicado@wefood.com.br",
         password: "outra-senha",
       }),

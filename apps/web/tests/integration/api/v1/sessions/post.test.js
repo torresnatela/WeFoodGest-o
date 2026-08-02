@@ -10,6 +10,7 @@ beforeAll(async () => {
 describe("POST /api/v1/sessions", () => {
   test("with correct credentials, creates a session and sets a cookie", async () => {
     await user.create({
+      name: "Usuária de teste",
       email: "login@wefood.com.br",
       password: "senha-correta",
     });
@@ -36,6 +37,7 @@ describe("POST /api/v1/sessions", () => {
 
   test("with a wrong password, returns 401 and does not set a cookie", async () => {
     await user.create({
+      name: "Usuária de teste",
       email: "senha-errada@wefood.com.br",
       password: "senha-correta",
     });
