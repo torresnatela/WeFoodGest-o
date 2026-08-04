@@ -55,9 +55,10 @@ export default function RegisterVisitFlow({ initialClient }) {
     setIsSearching(true);
 
     const response = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
-    const body = await response.json();
 
     setIsSearching(false);
+
+    const body = await response.json();
 
     if (!response.ok) {
       setSearchError(body.message ?? "Não foi possível buscar o cliente.");

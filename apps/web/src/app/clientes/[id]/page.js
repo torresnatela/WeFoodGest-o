@@ -9,7 +9,7 @@ import visit from "@/models/visit";
 const REASON_LABELS = {
   vontade_comer_beber: "Vontade de comer/beber algo",
   programa_familia_amigos: "Programa com família/amigos",
-  comemoracao: "Comemoração",
+  comemoracao: "Comemoração (aniversário etc)",
   passando_em_frente: "Passando em frente por acaso",
   outro: "Outro",
 };
