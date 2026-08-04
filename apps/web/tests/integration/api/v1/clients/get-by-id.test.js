@@ -50,6 +50,16 @@ describe("GET /api/v1/clients/[id]", () => {
     expect(response.status).toBe(404);
   });
 
+  test("with a non-uuid id, returns 404", async () => {
+    const adminSession = await createAdminSession();
+
+    const response = await fetch(`${orchestrator.webserverUrl}/api/v1/clients/nao-e-um-uuid`, {
+      headers: { Cookie: `session_id=${adminSession.token}` },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
   test("without a session, returns 401", async () => {
     const createdClient = await client.create({ name: "Cliente Sem Sessão", phone: "11966660002" });
 

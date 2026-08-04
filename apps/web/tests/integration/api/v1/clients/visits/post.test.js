@@ -16,7 +16,8 @@ async function createAdminSession() {
 
 describe("POST /api/v1/clients/[id]/visits", () => {
   test("with a valid session, registers a visit", async () => {
-    const adminSession = await createAdminSession();
+    const admin = await authentication.getAuthenticatedUser("admin@admin.com.br", "WeFood123456");
+    const adminSession = await session.create(admin.id);
     const createdClient = await client.create({ name: "Cliente Visita API", phone: "11955550001" });
 
     const response = await fetch(
@@ -39,6 +40,27 @@ describe("POST /api/v1/clients/[id]/visits", () => {
     const body = await response.json();
     expect(body.client_id).toBe(createdClient.id);
     expect(body.order_categories).toEqual(["milkshake"]);
+    expect(body.registered_by).toBe(admin.id);
+  });
+
+  test("with a non-uuid client id, returns 404", async () => {
+    const adminSession = await createAdminSession();
+
+    const response = await fetch(
+      `${orchestrator.webserverUrl}/api/v1/clients/nao-e-um-uuid/visits`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: `session_id=${adminSession.token}` },
+        body: JSON.stringify({
+          amount_spent: 10,
+          order_categories: ["sorvete"],
+          reason: "outro",
+          discovery_source: "outro",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(404);
   });
 
   test("without an order category, returns 400", async () => {

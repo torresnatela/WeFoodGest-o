@@ -3,6 +3,7 @@ const { ValidationError, NotFoundError } = require("@/infra/errors");
 
 const FOREIGN_KEY_VIOLATION = "23503";
 const CHECK_VIOLATION = "23514";
+const INVALID_TEXT_REPRESENTATION = "22P02";
 
 async function create({
   clientId,
@@ -68,7 +69,7 @@ async function create({
   } catch (error) {
     await dbClient.query("ROLLBACK");
 
-    if (error.code === FOREIGN_KEY_VIOLATION) {
+    if (error.code === FOREIGN_KEY_VIOLATION || error.code === INVALID_TEXT_REPRESENTATION) {
       throw new NotFoundError({
         message: "Cliente não encontrado.",
         action: "Verifique se o cliente informado existe.",

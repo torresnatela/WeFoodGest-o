@@ -2,6 +2,7 @@ const database = require("@wefood/database");
 const { ValidationError } = require("@/infra/errors");
 
 const UNIQUE_VIOLATION = "23505";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function create({ name, phone, birthDate, neighborhood, city }) {
   try {
@@ -41,6 +42,10 @@ async function findByPhone(phone) {
 }
 
 async function findById(id) {
+  if (!UUID_PATTERN.test(id ?? "")) {
+    return null;
+  }
+
   const result = await database.query({
     text: `
       SELECT id, name, phone, birth_date, neighborhood, city, created_at, updated_at
