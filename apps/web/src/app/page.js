@@ -23,6 +23,12 @@ export default async function Home() {
       <p className="text-zinc-600 dark:text-zinc-400">
         Bem-vindo, <span className="font-medium">{authenticatedUser.name}</span>
       </p>
+      <Link
+        href="/clientes"
+        className="text-sm font-medium text-black underline dark:text-zinc-50"
+      >
+        Clientes
+      </Link>
       {authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE) && (
         <Link
           href="/admin/colaboradores"
