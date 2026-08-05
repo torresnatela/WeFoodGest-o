@@ -46,14 +46,23 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível cadastrar o cliente.");
+      setIsSubmitting(false);
 
-      const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
-      if (lookup.ok) {
-        const lookupBody = await lookup.json();
-        setDuplicateId(lookupBody.clients[0]?.id ?? null);
+      // A busca abaixo é um extra: serve só para oferecer um caminho de saída
+      // quando o telefone já existe. Ela vem depois de destravar o botão e
+      // dentro de um try, porque falhar aqui não pode piorar a situação — a
+      // mensagem de erro principal já está na tela.
+      try {
+        const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
+
+        if (lookup.ok) {
+          const lookupBody = await lookup.json().catch(() => ({}));
+          setDuplicateId(lookupBody.clients?.[0]?.id ?? null);
+        }
+      } catch {
+        // Sem link de saída, mas o erro continua visível e o botão, utilizável.
       }
 
-      setIsSubmitting(false);
       return;
     }
 
