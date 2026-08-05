@@ -10,6 +10,21 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-04-dashboard-design.md`
 
+## Status: Tasks 1–9 are done and merged
+
+Tasks 1–9 (the whole data layer) were implemented, reviewed and committed on
+`main` in `0a0f595..25654ba`. The full suite is green at 47 suites / 151 tests.
+**Start at the checkpoint before Task 10.** Progress notes, deferred minors and
+one adjudicated finding live in `.superpowers/sdd/2026-08-04-dashboard/progress.md`.
+
+Two things Tasks 1–9 settled that change the text below:
+
+- `apps/web/src/lib/visit-options.js` is **ESM** and also exports
+  `CATEGORY_CHIP_CLASSES`, adopted byte-for-byte from the redesign worktree so
+  the branches merge cleanly. Task 12 uses it for the category bar colors.
+- The model is a directory, `apps/web/src/models/dashboard/`, with an
+  `index.js` barrel — `require("@/models/dashboard")` is unchanged for consumers.
+
 ## ⚠️ Ordering dependency — read before starting
 
 Tasks 9–13 consume pieces delivered by the **UX/UI redesign** (`docs/superpowers/specs/2026-08-04-ux-ui-redesign-design.md`): the theme tokens, the `Card` / `Badge` / `EmptyState` primitives in `src/components/ui/`, `formatCurrency` in `src/lib/`, `requireAuthenticatedUser()` in `src/app/require-auth.js`, and `AppShell` in `src/components/app-shell.js`.
@@ -890,7 +905,7 @@ describe("dashboard.timeline()", () => {
 
   test("rejects a granularity outside the closed list", async () => {
     await expect(
-      dashboard.timeline({
+      movement.timeline({
         from: new Date("2026-07-10T03:00:00Z"),
         to: new Date("2026-07-11T03:00:00Z"),
         granularity: "month'; DROP TABLE visits; --",
@@ -2175,6 +2190,7 @@ import {
   CATEGORY_LABELS,
   REASON_LABELS,
   DISCOVERY_LABELS,
+  CATEGORY_CHIP_CLASSES,
 } from "@/lib/visit-options";
 import StatCard from "./stat-card";
 import BarList from "./bar-list";
@@ -2260,7 +2276,7 @@ export default async function DashboardPage({ searchParams }) {
             value: row.visits,
             percentage: row.percentage,
             note: `ticket ${formatCurrency(row.averageTicket)}`,
-            color: `var(--color-category-${row.value})`,
+            className: CATEGORY_CHIP_CLASSES[row.value],
           }))}
         />
       </section>
@@ -2331,7 +2347,9 @@ export default async function DashboardPage({ searchParams }) {
 
 If `requireAuthenticatedUser` is a named export in the real file, adjust the import.
 
-**Category colors.** The `color: var(--color-category-<value>)` above assumes the redesign exposed its per-category palette (`sorvete`, `milkshake`, `lanche`, `bebida`, `sobremesa`, `outro`) as CSS variables under that name. Open `apps/web/src/app/globals.css` and use the real variable names. If the redesign only shipped those colors as Tailwind classes on the `Chip` component and not as variables, add the six variables to `globals.css` yourself using the exact hex values from the redesign spec's "Cores de categoria" table — that is a two-line addition per category and keeps the dashboard reading the same palette rather than inventing a second one. If any of this turns into more than a few lines, drop the `color` field and let the bars use the default `bg-brand-vivid`; matching chip colors is a nicety, not a requirement.
+**Category colors — resolved during Task 1.** `apps/web/src/lib/visit-options.js` exports `CATEGORY_CHIP_CLASSES`, a map of category value to a Tailwind class pair (`"bg-cat-sorvete-bg text-cat-sorvete-fg"`). Import it alongside the label maps and pass it through as shown. `BarList` in Task 11 must therefore accept a `className` on each item and apply it to the bar element, instead of the `color` style property that task's code sketch used — adjust `bar-list.js` accordingly when you build it. The classes are written as literal strings on purpose so Tailwind's scanner finds them; never build them by interpolation.
+
+Note that `visit-options.js` is ESM (`export const`), matching the redesign, not CommonJS like the model files.
 
 - [ ] **Step 2: Verify in the browser**
 
