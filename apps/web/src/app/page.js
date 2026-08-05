@@ -35,6 +35,12 @@ export default async function Home() {
       >
         Registrar visita
       </Link>
+      <Link
+        href="/avaliacoes"
+        className="text-sm font-medium text-black underline dark:text-zinc-50"
+      >
+        Avaliações
+      </Link>
       {authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE) && (
         <Link
           href="/admin/colaboradores"
