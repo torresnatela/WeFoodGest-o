@@ -18,13 +18,18 @@ function visitInput(clientId, overrides = {}) {
   };
 }
 
-beforeAll(async () => {
-  await orchestrator.waitForAllServices();
+async function resetDatabase() {
   await orchestrator.dropAllTables();
   await orchestrator.runPendingMigrations();
+}
+
+beforeAll(async () => {
+  await orchestrator.waitForAllServices();
 });
 
 describe("dashboard.newVsReturningClients()", () => {
+  beforeEach(resetDatabase);
+
   test("counts a client as new when its very first visit falls in the period", async () => {
     const brandNew = await client.create({ name: "Novo", phone: "11940000001" });
     const returning = await client.create({ name: "Recorrente", phone: "11940000002" });
@@ -63,15 +68,14 @@ describe("dashboard.newVsReturningClients()", () => {
 
     const result = await clients.newVsReturningClients({ from: FROM, to: TO });
 
-    expect(result).toEqual({ newClients: 2, returningClients: 1 });
+    expect(result).toEqual({ newClients: 1, returningClients: 0 });
   });
 });
 
 describe("dashboard.topClients()", () => {
-  test("ranks by total spent and respects the limit", async () => {
-    await orchestrator.dropAllTables();
-    await orchestrator.runPendingMigrations();
+  beforeAll(resetDatabase);
 
+  test("ranks by total spent and respects the limit", async () => {
     const big = await client.create({ name: "Gastou Muito", phone: "11940000004" });
     const small = await client.create({ name: "Gastou Pouco", phone: "11940000005" });
 
@@ -102,10 +106,9 @@ describe("dashboard.topClients()", () => {
 });
 
 describe("dashboard.byNeighborhood()", () => {
-  test("groups visits by the client's neighborhood and city, keeping nulls", async () => {
-    await orchestrator.dropAllTables();
-    await orchestrator.runPendingMigrations();
+  beforeAll(resetDatabase);
 
+  test("groups visits by the client's neighborhood and city, keeping nulls", async () => {
     const located = await client.create({
       name: "Com Bairro",
       phone: "11940000006",
@@ -137,10 +140,9 @@ describe("dashboard.byNeighborhood()", () => {
 });
 
 describe("dashboard.byCollaborator()", () => {
-  test("counts visits per collaborator and keeps unattributed visits", async () => {
-    await orchestrator.dropAllTables();
-    await orchestrator.runPendingMigrations();
+  beforeAll(resetDatabase);
 
+  test("counts visits per collaborator and keeps unattributed visits", async () => {
     // user.findByEmail() only returns id/email/password/timestamps, which
     // lacks the `name` this assertion needs. Chain it with user.findById(),
     // which does return that shape, instead of inventing a new model
@@ -169,10 +171,9 @@ describe("dashboard.byCollaborator()", () => {
 });
 
 describe("dashboard.birthdaysOfMonth()", () => {
-  test("returns clients born in the month, ordered by day, ignoring the period", async () => {
-    await orchestrator.dropAllTables();
-    await orchestrator.runPendingMigrations();
+  beforeAll(resetDatabase);
 
+  test("returns clients born in the month, ordered by day, ignoring the period", async () => {
     await client.create({
       name: "Aniversario Dia 20",
       phone: "11940000009",

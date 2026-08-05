@@ -5,6 +5,7 @@ const {
   CATEGORY_LABELS,
   REASON_LABELS,
   DISCOVERY_LABELS,
+  CATEGORY_CHIP_CLASSES,
 } = require("@/lib/visit-options");
 
 // These lists mirror the CHECK constraints in
@@ -45,5 +46,12 @@ describe("lib/visit-options", () => {
     expect(CATEGORY_LABELS.sorvete).toBe("Sorvete");
     expect(REASON_LABELS.comemoracao).toBe("Comemoração (aniversário etc)");
     expect(DISCOVERY_LABELS.instagram).toBe("Instagram/Redes sociais");
+  });
+
+  test("gives every category value a non-empty chip class string", () => {
+    for (const option of CATEGORY_OPTIONS) {
+      expect(typeof CATEGORY_CHIP_CLASSES[option.value]).toBe("string");
+      expect(CATEGORY_CHIP_CLASSES[option.value].length).toBeGreaterThan(0);
+    }
   });
 });
