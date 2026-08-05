@@ -1,19 +1,26 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const timers = useRef([]);
 
   const push = useCallback((tone, message) => {
     const id = crypto.randomUUID();
     setToasts((current) => [...current, { id, tone, message }]);
-    setTimeout(() => {
+
+    const timer = setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
+      timers.current = timers.current.filter((pending) => pending !== timer);
     }, 4000);
+
+    timers.current.push(timer);
   }, []);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const value = useMemo(
     () => ({
