@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 export default function ClientsSearch({ defaultValue = "" }) {
   const router = useRouter();
   const [term, setTerm] = useState(defaultValue);
+  // O último valor que a URL trouxe: serve para reagir só quando ela muda de
+  // verdade, e não a cada renderização em que ela ainda não mudou.
   const [urlTerm, setUrlTerm] = useState(defaultValue);
+  // O último valor que este componente pediu à URL.
+  const [requestedTerm, setRequestedTerm] = useState(defaultValue);
 
   // Quando a URL muda por fora — o usuário clicou em "Clientes" na navegação,
   // por exemplo — esta rota não remonta o componente, então o estado local
@@ -15,7 +19,14 @@ export default function ClientsSearch({ defaultValue = "" }) {
   // o clique do usuário 300ms depois, sem nenhum aviso.
   if (defaultValue !== urlTerm) {
     setUrlTerm(defaultValue);
-    setTerm(defaultValue);
+
+    // Mas se a URL trouxe exatamente o que este componente pediu, a navegação
+    // não veio de fora: é a nossa, chegando atrasada. Sobrescrever `term` aqui
+    // apagaria os caracteres digitados enquanto ela estava a caminho.
+    if (defaultValue !== requestedTerm) {
+      setRequestedTerm(defaultValue);
+      setTerm(defaultValue);
+    }
   }
 
   useEffect(() => {
@@ -24,6 +35,9 @@ export default function ClientsSearch({ defaultValue = "" }) {
     }
 
     const timer = setTimeout(() => {
+      // Registrar o pedido antes de navegar é o que permite reconhecer esta
+      // navegação quando ela voltar como `defaultValue`.
+      setRequestedTerm(term);
       router.replace(term ? `/clientes?search=${encodeURIComponent(term)}` : "/clientes");
     }, 300);
 
