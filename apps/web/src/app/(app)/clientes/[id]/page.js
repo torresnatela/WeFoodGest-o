@@ -5,32 +5,7 @@ import Link from "next/link";
 import authentication from "@/models/authentication";
 import client from "@/models/client";
 import visit from "@/models/visit";
-
-const REASON_LABELS = {
-  vontade_comer_beber: "Vontade de comer/beber algo",
-  programa_familia_amigos: "Programa com família/amigos",
-  comemoracao: "Comemoração (aniversário etc)",
-  passando_em_frente: "Passando em frente por acaso",
-  outro: "Outro",
-};
-
-const DISCOVERY_LABELS = {
-  instagram: "Instagram/Redes sociais",
-  indicacao: "Indicação de amigo/família",
-  google_internet: "Google/Internet",
-  passou_em_frente: "Passou em frente e viu a loja",
-  cliente_antigo: "Já é cliente antigo",
-  outro: "Outro",
-};
-
-const CATEGORY_LABELS = {
-  sorvete: "Sorvete",
-  milkshake: "Milkshake",
-  lanche: "Lanche",
-  bebida: "Bebida",
-  sobremesa: "Sobremesa",
-  outro: "Outro",
-};
+import { CATEGORY_LABELS, REASON_LABELS, DISCOVERY_LABELS } from "@/lib/visit-options";
 
 export default async function ClienteDetailPage({ params }) {
   const cookieStore = await cookies();

@@ -7,6 +7,7 @@ import authorization from "@/models/authorization";
 import LogoutButton from "@/components/logout-button";
 
 const MANAGE_USERS_FEATURE = "usuarios.gerenciar";
+const VIEW_DASHBOARD_FEATURE = "dashboard.visualizar";
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -41,6 +42,14 @@ export default async function Home() {
       >
         Avaliações
       </Link>
+      {authorization.userCan(authenticatedUser, VIEW_DASHBOARD_FEATURE) && (
+        <Link
+          href="/dashboard"
+          className="text-sm font-medium text-black underline dark:text-zinc-50"
+        >
+          Dashboard
+        </Link>
+      )}
       {authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE) && (
         <Link
           href="/admin/colaboradores"

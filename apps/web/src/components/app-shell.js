@@ -9,10 +9,20 @@ const PRIMARY_NAV = [
   { href: "/avaliacoes", label: "Avaliações", icon: "⭐" },
 ];
 
-export default function AppShell({ user, canManageUsers = false, children }) {
-  const sidebarItems = canManageUsers
-    ? [...PRIMARY_NAV, { href: "/admin/colaboradores", label: "Colaboradores", icon: "🧑‍🍳" }]
-    : PRIMARY_NAV;
+export default function AppShell({
+  user,
+  canManageUsers = false,
+  canViewDashboard = false,
+  children,
+}) {
+  const sidebarItems = [
+    PRIMARY_NAV[0],
+    ...(canViewDashboard ? [{ href: "/dashboard", label: "Dashboard", icon: "📊" }] : []),
+    ...PRIMARY_NAV.slice(1),
+    ...(canManageUsers
+      ? [{ href: "/admin/colaboradores", label: "Colaboradores", icon: "🧑‍🍳" }]
+      : []),
+  ];
 
   return (
     <div className="flex min-h-full flex-1 flex-col lg:flex-row">
@@ -49,7 +59,7 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         <LogoutButton />
       </header>
 
-      <main className="flex flex-1 flex-col pb-24 lg:pb-0">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">{children}</main>
 
       <nav
         aria-label="Navegação principal"
