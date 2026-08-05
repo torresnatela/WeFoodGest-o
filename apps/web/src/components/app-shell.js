@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import Button from "./ui/button";
 import LogoutButton from "./logout-button";
 import NavLink from "./nav-link";
 
@@ -17,15 +18,21 @@ export default function AppShell({ user, canManageUsers = false, children }) {
 
   return (
     <div className="flex min-h-full flex-1 flex-col lg:flex-row">
+      {/* Primeiro elemento focável da página: sem ele, chegar ao conteúdo pelo
+          teclado custa a marca, o CTA, quatro links e o botão de sair. */}
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-full focus:bg-brand focus:px-5 focus:text-sm focus:font-bold focus:text-on-brand"
+      >
+        Pular para o conteúdo
+      </a>
+
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface p-4 lg:flex">
         <p className="mb-6 font-display text-xl font-extrabold text-brand">WeFood</p>
-        <Link
-          href="/visitas/nova"
-          className="mb-6 rounded-full bg-brand px-4 py-3 text-center text-sm font-bold text-on-brand hover:bg-brand-hover"
-        >
+        <Button as={Link} href="/visitas/nova" className="mb-6 w-full text-center">
           Registrar visita
-        </Link>
-        <nav className="flex flex-col gap-1">
+        </Button>
+        <nav aria-label="Navegação lateral" className="flex flex-col gap-1">
           {sidebarItems.map((item) => (
             <NavLink
               key={item.href}
@@ -52,7 +59,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         <LogoutButton />
       </header>
 
-      <main className="flex flex-1 flex-col pb-24 lg:pb-0">{children}</main>
+      <main id="conteudo" className="flex flex-1 flex-col pb-24 lg:pb-0">
+        {children}
+      </main>
 
       <nav
         aria-label="Navegação principal"
