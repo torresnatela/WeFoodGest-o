@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Input from "@/components/ui/input";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -15,11 +19,18 @@ export default function LoginPage() {
     setError(null);
     setIsSubmitting(true);
 
-    const response = await fetch("/api/v1/sessions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    let response;
+    try {
+      response = await fetch("/api/v1/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      setIsSubmitting(false);
+      setError("Não foi possível falar com o servidor. Tente de novo.");
+      return;
+    }
 
     setIsSubmitting(false);
 
@@ -34,45 +45,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-zinc-950"
-      >
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">WeFood Gestão</h1>
+    <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="text-center">
+          <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
+          <p className="text-sm text-muted">Sistema de gestão</p>
+        </div>
 
-        <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Email
-          <input
+        <Card as="form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <Input
+            label="Email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
           />
-        </label>
 
-        <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Senha
-          <input
+          <Input
+            label="Senha"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
+            error={error}
           />
-        </label>
 
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-        >
-          {isSubmitting ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+          <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Entrando...">
+            Entrar
+          </Button>
+        </Card>
+      </div>
     </div>
   );
 }
