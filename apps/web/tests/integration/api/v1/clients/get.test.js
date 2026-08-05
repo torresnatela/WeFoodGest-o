@@ -54,6 +54,19 @@ describe("GET /api/v1/clients", () => {
     expect(names).toContain("Fernanda Pesquisa");
   });
 
+  test("com busca por nome, cada cliente traz visit_count e last_visit_at", async () => {
+    const adminSession = await createAdminSession();
+    await client.create({ name: "Gustavo Contagem", phone: "11977770003" });
+
+    const response = await fetch(`${orchestrator.webserverUrl}/api/v1/clients?search=Gustavo Contagem`, {
+      headers: { Cookie: `session_id=${adminSession.token}` },
+    });
+
+    const body = await response.json();
+    expect(body.clients[0].visit_count).toBe(0);
+    expect(body.clients[0].last_visit_at).toBeNull();
+  });
+
   test("without a session, returns 401", async () => {
     const response = await fetch(`${orchestrator.webserverUrl}/api/v1/clients`);
 

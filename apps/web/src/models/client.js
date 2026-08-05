@@ -61,10 +61,16 @@ async function findById(id) {
 async function search({ name }) {
   const result = await database.query({
     text: `
-      SELECT id, name, phone, birth_date, neighborhood, city, created_at, updated_at
-      FROM clients
-      WHERE name ILIKE $1
-      ORDER BY name;
+      SELECT
+        c.id, c.name, c.phone, c.birth_date, c.neighborhood, c.city,
+        c.created_at, c.updated_at,
+        COUNT(v.id)::int AS visit_count,
+        MAX(v.created_at) AS last_visit_at
+      FROM clients c
+      LEFT JOIN visits v ON v.client_id = c.id
+      WHERE c.name ILIKE $1
+      GROUP BY c.id
+      ORDER BY c.name;
     `,
     values: [`%${name ?? ""}%`],
   });
