@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import authentication from "@/models/authentication";
 import authorization from "@/models/authorization";
-import LogoutButton from "./logout-button";
+import LogoutButton from "@/components/logout-button";
 
 const MANAGE_USERS_FEATURE = "usuarios.gerenciar";
 

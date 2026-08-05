@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import ClientForm from "../client-form";
+import ClientForm from "@/components/client-form";
 
 export default function NewClientPageForm() {
   const router = useRouter();
