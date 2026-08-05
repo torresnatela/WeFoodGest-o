@@ -320,7 +320,7 @@ cd apps/web && npx jest --runInBand tests/integration/migrations/dashboard-featu
 
 Expected: PASS, 3 tests.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add packages/database/migrations apps/web/tests/integration/migrations
@@ -1877,7 +1877,7 @@ npm test
 
 Expected: every suite passes. This is the last model task — everything from here needs the redesign.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/models/dashboard/index.js apps/web/tests/integration/models/dashboard/get-overview.test.js
@@ -1891,17 +1891,34 @@ EOF
 
 ---
 
-## 🚧 Checkpoint — the redesign must be merged before Task 10
+## 🚧 Checkpoint — redesign merged, real interfaces recorded
 
-Verify all of these exist before continuing. If any is missing, **stop and report**:
+The redesign merged into `main` in `a452fbd`. Task 10 turned out to need none of
+it and shipped before the merge. The pieces below are the **verified** shapes as
+they exist on `main` — they differ from what this plan originally assumed, so use
+these, not the redesign spec:
 
-```bash
-ls apps/web/src/components/ui/ apps/web/src/components/app-shell.js apps/web/src/app/require-auth.js apps/web/src/lib/
-```
+| Piece | Real import | Note |
+| --- | --- | --- |
+| `Card` | `import Card from "@/components/ui/card"` | **default** export, not named. Props `{ as, className, children }` |
+| `EmptyState` | `import EmptyState from "@/components/ui/empty-state"` | **default** export. Props `{ icon, title, description, action }` |
+| `formatCurrency` | `import { formatCurrency } from "@/lib/format"` | in `format.js`, not `format-currency.js` |
+| `requireAuthenticatedUser` | `import requireAuthenticatedUser from "@/app/require-auth"` | default export, redirects to `/login` and returns the user |
+| `AppShell` | `@/components/app-shell` | `{ user, canManageUsers = false, children }` |
+| labels | `@/lib/visit-options` | ESM, also exports `CATEGORY_CHIP_CLASSES` |
 
-Expected: `Card`, `Badge` and `EmptyState` under `components/ui/`, plus `app-shell.js`, `require-auth.js` and a `lib/` holding `formatCurrency`.
+**Route group.** Every authenticated screen now lives under
+`apps/web/src/app/(app)/`, whose `layout.js` calls `requireAuthenticatedUser()`
+and wraps children in `AppShell`. The dashboard therefore goes in
+`apps/web/src/app/(app)/dashboard/`, **not** `apps/web/src/app/dashboard/` —
+otherwise it renders with no navigation. Task 11 moves `bucket-label.js` there
+along with the new components.
 
-Open each one and confirm the props before using them below — this plan's UI code is written against the redesign spec, not against code that existed when the plan was written.
+**Still ahead of the redesign team, do not assume it is done:** the screens
+themselves are not restyled yet — `(app)/page.js` still uses the old
+zinc/`dark:` palette, and `register-visit-flow.js` and `clientes/[id]/page.js`
+still declare their own label constants. Task 13's rewiring is therefore still
+needed, and will touch files that session is actively editing.
 
 ---
 
@@ -2006,10 +2023,11 @@ EOF
 ### Task 11: Presentational components
 
 **Files:**
-- Create: `apps/web/src/app/dashboard/stat-card.js`
-- Create: `apps/web/src/app/dashboard/bar-list.js`
-- Create: `apps/web/src/app/dashboard/timeline-chart.js`
-- Create: `apps/web/src/app/dashboard/period-filter.js`
+- Move: `apps/web/src/app/dashboard/bucket-label.js` → `apps/web/src/app/(app)/dashboard/bucket-label.js` (use `git mv`; update the require path in `apps/web/tests/unit/app/dashboard/bucket-label.test.js` to `@/app/(app)/dashboard/bucket-label`)
+- Create: `apps/web/src/app/(app)/dashboard/stat-card.js`
+- Create: `apps/web/src/app/(app)/dashboard/bar-list.js`
+- Create: `apps/web/src/app/(app)/dashboard/timeline-chart.js`
+- Create: `apps/web/src/app/(app)/dashboard/period-filter.js`
 
 **Interfaces:**
 - Consumes: `Card` and `EmptyState` from `@/components/ui`, `formatCurrency` from `@/lib`, `bucketLabel` from Task 10, `PERIODS` from `@/models/dashboard`.
@@ -2024,7 +2042,7 @@ These are Server Components with no data fetching and no state, so they carry no
 - [ ] **Step 1: Write `stat-card.js`**
 
 ```js
-import { Card } from "@/components/ui/card";
+import Card from "@/components/ui/card";
 
 export default function StatCard({ label, value }) {
   return (
@@ -2039,7 +2057,7 @@ export default function StatCard({ label, value }) {
 - [ ] **Step 2: Write `bar-list.js`**
 
 ```js
-import { EmptyState } from "@/components/ui/empty-state";
+import EmptyState from "@/components/ui/empty-state";
 
 export default function BarList({ items }) {
   if (items.length === 0) {
@@ -2064,11 +2082,8 @@ export default function BarList({ items }) {
           </div>
           <div className="h-2 w-full overflow-hidden rounded-pill bg-surface-2">
             <div
-              className="h-full rounded-pill bg-brand-vivid"
-              style={{
-                width: `${largest === 0 ? 0 : (item.value / largest) * 100}%`,
-                ...(item.color ? { backgroundColor: item.color } : {}),
-              }}
+              className={`h-full rounded-pill ${item.className ?? "bg-brand-vivid"}`}
+              style={{ width: `${largest === 0 ? 0 : (item.value / largest) * 100}%` }}
             />
           </div>
         </li>
@@ -2078,13 +2093,15 @@ export default function BarList({ items }) {
 }
 ```
 
+`item.className` carries a Tailwind class pair from `CATEGORY_CHIP_CLASSES`; when absent the bar falls back to `bg-brand-vivid`. Classes, not inline colors — Tailwind's scanner needs the literal strings, which is why `visit-options.js` spells them out.
+
 Labels and values sit **outside** the bar: `--color-brand-vivid` only reaches 3,1:1 against white and must never carry light text.
 
 - [ ] **Step 3: Write `timeline-chart.js`**
 
 ```js
 import bucketLabel from "./bucket-label";
-import { formatCurrency } from "@/lib/format-currency";
+import { formatCurrency } from "@/lib/format";
 
 export default function TimelineChart({ points, granularity }) {
   const tallest = Math.max(...points.map((point) => point.visits), 0);
@@ -2152,10 +2169,10 @@ npm run lint
 
 Expected: no errors. If an import path is wrong (for example the redesign exports `Card` from `@/components/ui` rather than `@/components/ui/card`), fix the path to match the real code.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add apps/web/src/app/dashboard
+git add "apps/web/src/app/(app)/dashboard" apps/web/tests/unit/app/dashboard/bucket-label.test.js
 git commit -m "$(cat <<'EOF'
 Add the dashboard presentational components
 
@@ -2169,15 +2186,17 @@ EOF
 ### Task 12: The dashboard page
 
 **Files:**
-- Create: `apps/web/src/app/dashboard/page.js`
+- Create: `apps/web/src/app/(app)/dashboard/page.js`
 
 **Interfaces:**
 - Consumes: `requireAuthenticatedUser()` from `@/app/require-auth`, `authorization.userCan`, everything from `@/models/dashboard`, the components from Task 11, the label maps from Task 1, `formatCurrency`.
 - Produces: the route `/dashboard`, reading `?periodo=`.
 
+The `(app)` layout already calls `requireAuthenticatedUser()` and redirects anonymous visitors, so the page calls it only to get the user for the permission check — the redirect is belt-and-braces, not the primary gate.
+
 - [ ] **Step 1: Write the page**
 
-Create `apps/web/src/app/dashboard/page.js`:
+Create `apps/web/src/app/(app)/dashboard/page.js`:
 
 ```js
 import { notFound } from "next/navigation";
@@ -2185,7 +2204,7 @@ import { notFound } from "next/navigation";
 import requireAuthenticatedUser from "@/app/require-auth";
 import authorization from "@/models/authorization";
 import dashboard from "@/models/dashboard";
-import { formatCurrency } from "@/lib/format-currency";
+import { formatCurrency } from "@/lib/format";
 import {
   CATEGORY_LABELS,
   REASON_LABELS,
@@ -2383,7 +2402,7 @@ Expected: both pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add apps/web/src/app/dashboard/page.js
+git add "apps/web/src/app/(app)/dashboard/page.js"
 git commit -m "$(cat <<'EOF'
 Add the /dashboard page
 
@@ -2398,9 +2417,10 @@ EOF
 
 **Files:**
 - Modify: `apps/web/src/components/app-shell.js`
-- Modify: `apps/web/src/app/page.js`
-- Modify: `apps/web/src/app/visitas/nova/register-visit-flow.js`
-- Modify: `apps/web/src/app/clientes/[id]/page.js`
+- Modify: `apps/web/src/app/(app)/layout.js`
+- Modify: `apps/web/src/app/(app)/page.js`
+- Modify: `apps/web/src/app/(app)/visitas/nova/register-visit-flow.js`
+- Modify: `apps/web/src/app/(app)/clientes/[id]/page.js`
 
 **Interfaces:**
 - Consumes: `authorization.userCan`, `@/lib/visit-options` from Task 1.
@@ -2408,37 +2428,56 @@ EOF
 
 - [ ] **Step 1: Add `canViewDashboard` to the shell**
 
-In `apps/web/src/components/app-shell.js`, add `canViewDashboard` to the destructured props next to `canManageUsers`, and add the sidebar item between *Início* and *Clientes*, following exactly the markup the existing items use:
+`apps/web/src/components/app-shell.js` builds its sidebar from a `PRIMARY_NAV` array and appends the Colaboradores item when `canManageUsers`. Follow that exact shape: add `canViewDashboard = false` to the destructured props, and build `sidebarItems` so the Dashboard entry lands right after *Início* when the permission is present:
 
 ```js
-{canViewDashboard && (
-  <SidebarLink href="/dashboard">Dashboard</SidebarLink>
-)}
+export default function AppShell({
+  user,
+  canManageUsers = false,
+  canViewDashboard = false,
+  children,
+}) {
+  const sidebarItems = [
+    PRIMARY_NAV[0],
+    ...(canViewDashboard ? [{ href: "/dashboard", label: "Dashboard", icon: "📊" }] : []),
+    ...PRIMARY_NAV.slice(1),
+    ...(canManageUsers
+      ? [{ href: "/admin/colaboradores", label: "Colaboradores", icon: "🧑‍🍳" }]
+      : []),
+  ];
 ```
 
-Use whatever the file's real link component/markup is — match the neighbours rather than introducing a new pattern.
+Leave `PRIMARY_NAV` itself untouched — the mobile bottom nav renders from it directly and the redesign fixed it at three items on purpose. Mobile access to the dashboard comes from the home panel in Step 3.
 
-Leave the mobile bottom nav at three items. The redesign chose that on purpose; mobile access comes from the home panel in Step 2.
+- [ ] **Step 2: Compute and pass the prop in the layout**
 
-- [ ] **Step 2: Pass the prop and add the home entry**
-
-In `apps/web/src/app/page.js`, compute the permission next to the existing `canManageUsers` calculation:
+`AppShell` is rendered by `apps/web/src/app/(app)/layout.js`, which already computes `canManageUsers`. Add the sibling permission and pass it:
 
 ```js
-const canViewDashboard = authorization.userCan(authenticatedUser, "dashboard.visualizar");
+const VIEW_DASHBOARD_FEATURE = "dashboard.visualizar";
 ```
 
-Pass it to `AppShell` wherever `canManageUsers` is passed, and add a Dashboard entry to the home panel guarded by `canViewDashboard`, matching the markup of the panel's existing entries.
+```js
+    <AppShell
+      user={authenticatedUser}
+      canManageUsers={authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE)}
+      canViewDashboard={authorization.userCan(authenticatedUser, VIEW_DASHBOARD_FEATURE)}
+    >
+```
 
-- [ ] **Step 3: Point the two screens at the shared labels**
+- [ ] **Step 3: Add the home entry**
 
-In `apps/web/src/app/visitas/nova/register-visit-flow.js`, delete the local `CATEGORY_OPTIONS`, `REASON_OPTIONS` and `DISCOVERY_OPTIONS` declarations and import them instead:
+`apps/web/src/app/(app)/page.js` lists the sections as `<Link>`s and already guards the Colaboradores link with `authorization.userCan(...)`. Add a Dashboard link the same way, guarded by `authorization.userCan(authenticatedUser, "dashboard.visualizar")`, matching the neighbouring links' markup exactly — including their current classes, even though those classes are still the pre-redesign zinc/`dark:` ones. Restyling that page belongs to the redesign workstream, not here; introducing token classes on one link would leave the page half-converted.
+
+- [ ] **Step 4: Point the two screens at the shared labels**
+
+In `apps/web/src/app/(app)/visitas/nova/register-visit-flow.js`, delete the local `CATEGORY_OPTIONS`, `REASON_OPTIONS` and `DISCOVERY_OPTIONS` declarations and import them instead:
 
 ```js
 import { CATEGORY_OPTIONS, REASON_OPTIONS, DISCOVERY_OPTIONS } from "@/lib/visit-options";
 ```
 
-In `apps/web/src/app/clientes/[id]/page.js`, delete the local `CATEGORY_LABELS`, `REASON_LABELS` and `DISCOVERY_LABELS` declarations and import them instead:
+In `apps/web/src/app/(app)/clientes/[id]/page.js`, delete the local `CATEGORY_LABELS`, `REASON_LABELS` and `DISCOVERY_LABELS` declarations and import them instead:
 
 ```js
 import { CATEGORY_LABELS, REASON_LABELS, DISCOVERY_LABELS } from "@/lib/visit-options";
@@ -2446,7 +2485,7 @@ import { CATEGORY_LABELS, REASON_LABELS, DISCOVERY_LABELS } from "@/lib/visit-op
 
 If the redesign renamed these constants, keep its names and adapt the import — the goal is one source of truth, not a specific identifier.
 
-- [ ] **Step 4: Verify in the browser**
+- [ ] **Step 5: Verify in the browser**
 
 ```bash
 npm run dev
@@ -2457,7 +2496,7 @@ npm run dev
 - `/visitas/nova` still shows every category, reason and origin option with the same wording.
 - A client's detail page still names the category, reason and origin of each visit.
 
-- [ ] **Step 5: Run lint and the full suite**
+- [ ] **Step 6: Run lint and the full suite**
 
 ```bash
 npm run lint && npm test
@@ -2465,10 +2504,10 @@ npm run lint && npm test
 
 Expected: both pass.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add apps/web/src/components/app-shell.js apps/web/src/app/page.js apps/web/src/app/visitas/nova/register-visit-flow.js "apps/web/src/app/clientes/[id]/page.js"
+git add apps/web/src/components/app-shell.js "apps/web/src/app/(app)/layout.js" "apps/web/src/app/(app)/page.js" "apps/web/src/app/(app)/visitas/nova/register-visit-flow.js" "apps/web/src/app/(app)/clientes/[id]/page.js"
 git commit -m "$(cat <<'EOF'
 Link to the dashboard and drop the duplicated visit labels
 
@@ -2488,5 +2527,5 @@ Before calling the module done:
 - [ ] `/dashboard` renders for an admin and 404s for a colaborador without the permission
 - [ ] All four period shortcuts change the numbers; `?periodo=xyz` falls back to 30 days instead of erroring
 - [ ] An empty period shows zeros and "Sem dados no período", never an error
-- [ ] No `"use client"`, no hex color, and no `dark:` class in `apps/web/src/app/dashboard/`
+- [ ] No `"use client"`, no hex color, and no `dark:` class in `apps/web/src/app/(app)/dashboard/`
 - [ ] `grep -rn "CATEGORY_OPTIONS\|REASON_LABELS" apps/web/src` shows the definitions only in `src/lib/visit-options.js`
