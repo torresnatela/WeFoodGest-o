@@ -19,7 +19,7 @@
 - Nenhuma migration. O schema do banco não muda.
 - Contratos de API existentes não mudam; só recebem campos aditivos.
 - Alvos de toque: mínimo 44px em botões, 48px em chips.
-- Componentes de UI ficam abaixo de ~80 linhas. Se passar disso, é sinal de que faltou separar.
+- Os primitivos em `src/components/ui/` ficam abaixo de ~80 linhas cada. Este limite vale **só** para eles: páginas e componentes de fluxo (`register-visit-flow.js`, `app-shell.js`) são legitimamente maiores, e o plano traz o código completo deles.
 - Arquivos com `useState`/`useEffect`/handlers levam `"use client"` na primeira linha; páginas que fazem `await` em dados são Server Components e não levam.
 
 ## Como rodar os testes
