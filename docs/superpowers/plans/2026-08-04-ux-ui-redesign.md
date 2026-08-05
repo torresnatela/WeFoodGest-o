@@ -576,7 +576,7 @@ git commit -m "Add Button, Card, Badge, and EmptyState primitives"
 - Create: `apps/web/src/components/ui/currency-input.js`
 
 **Interfaces:**
-- Consumes: `formatPhone`, `onlyDigits`, `formatCurrency` de `@/lib/format` (Task 2).
+- Consumes: `formatPhone` e `onlyDigits` de `@/lib/format` (Task 2). `CurrencyInput` monta a exibição com `toLocaleString` em vez de `formatCurrency`, porque precisa do número sem o prefixo para compor `R$ ${…}` — a saída é idêntica.
 - Produces:
   - `<Input label error hint {...inputProps} />`
   - `<PhoneInput label value onChange error required />` — `value` e `onChange` trabalham com **string só de dígitos**
