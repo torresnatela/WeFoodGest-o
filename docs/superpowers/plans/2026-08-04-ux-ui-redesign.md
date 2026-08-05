@@ -897,8 +897,11 @@ git commit -m "Add Toast provider with aria-live announcements"
 - Move: `apps/web/src/app/clientes/` → `apps/web/src/app/(app)/clientes/`
 - Move: `apps/web/src/app/visitas/` → `apps/web/src/app/(app)/visitas/`
 - Move: `apps/web/src/app/admin/` → `apps/web/src/app/(app)/admin/`
+- Move: `apps/web/src/app/avaliacoes/` → `apps/web/src/app/(app)/avaliacoes/`
 - Move: `apps/web/src/app/clientes/client-form.js` → `apps/web/src/components/client-form.js`
 - Delete: `apps/web/src/app/logout-button.js`
+
+`/avaliacoes` é autenticada e entra no route group. `/avaliar` **não** entra: é a página pública para onde o QR code da loja aponta, e o cliente nunca está logado — assim como `/login` e `/cadastro/[token]`, ela fica fora do shell.
 
 **Interfaces:**
 - Consumes: `Button` (Task 3).
@@ -913,6 +916,7 @@ git mv page.js "(app)/page.js"
 git mv clientes "(app)/clientes"
 git mv visitas "(app)/visitas"
 git mv admin "(app)/admin"
+git mv avaliacoes "(app)/avaliacoes"
 git mv "(app)/clientes/client-form.js" ../components/client-form.js
 git rm logout-button.js
 ```
@@ -998,15 +1002,17 @@ import Link from "next/link";
 
 import LogoutButton from "./logout-button";
 
-const NAV_ITEMS = [
+// Estes três são a nav inferior do celular — o esqueleto escolhido fixou três itens.
+const PRIMARY_NAV = [
   { href: "/", label: "Início", icon: "🏠" },
   { href: "/clientes", label: "Clientes", icon: "👥" },
+  { href: "/avaliacoes", label: "Avaliações", icon: "⭐" },
 ];
 
 export default function AppShell({ user, canManageUsers = false, children }) {
-  const items = canManageUsers
-    ? [...NAV_ITEMS, { href: "/admin/colaboradores", label: "Colaboradores", icon: "🧑‍🍳" }]
-    : NAV_ITEMS;
+  const sidebarItems = canManageUsers
+    ? [...PRIMARY_NAV, { href: "/admin/colaboradores", label: "Colaboradores", icon: "🧑‍🍳" }]
+    : PRIMARY_NAV;
 
   return (
     <div className="flex min-h-full flex-1 flex-col lg:flex-row">
@@ -1019,7 +1025,7 @@ export default function AppShell({ user, canManageUsers = false, children }) {
           Registrar visita
         </Link>
         <nav className="flex flex-col gap-1">
-          {items.map((item) => (
+          {sidebarItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -1049,7 +1055,7 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        {items.map((item) => (
+        {PRIMARY_NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -1094,7 +1100,9 @@ As páginas continuam chamando `requireAuthenticatedUser()` por conta própria �
 
 - [ ] **Step 7: Verificar no navegador**
 
-Com `npm run dev`, entre no app e visite `/`, `/clientes` e `/visitas/nova`. Esperado, em 1440px: sidebar creme fixa à esquerda com "WeFood" em vermelho, botão *Registrar visita*, itens de navegação, e nome do usuário com *Sair* no rodapé. Em 375px (modo dispositivo do DevTools): topbar em cima, nav inferior fixa com Início e Clientes, e o conteúdo não fica escondido atrás dela. Saia da sessão e confirme que `/login` **não** mostra o shell.
+Com `npm run dev`, entre no app e visite `/`, `/clientes`, `/visitas/nova` e `/avaliacoes`. Esperado, em 1440px: sidebar creme fixa à esquerda com "WeFood" em vermelho, botão *Registrar visita*, os itens de navegação (com *Colaboradores* só para admin), e nome do usuário com *Sair* no rodapé. Em 375px (modo dispositivo do DevTools): topbar em cima, nav inferior fixa com exatamente três itens — Início, Clientes e Avaliações — e o conteúdo não fica escondido atrás dela.
+
+Saia da sessão e confirme que `/login`, `/cadastro/<token>` e **`/avaliar`** não mostram o shell. O `/avaliar` é o caso que mais importa aqui: é a página pública do QR code, e um cliente da loja não pode ver a navegação interna nem o nome de quem está logado.
 
 - [ ] **Step 8: Rodar a suíte completa**
 
@@ -1514,6 +1522,8 @@ git commit -m "Redesign the login screen"
 **Interfaces:**
 - Consumes: `requireAuthenticatedUser` (Task 7), `visit.summaryForToday` (Task 9), `formatCurrency` (Task 2), `Card` (Task 3), `authorization.userCan`.
 
+A home atual tem um link para `/avaliacoes`, acrescentado pelo módulo de avaliações no commit `48dee01`. Ele é preservado como um dos atalhos — substituir o arquivo sem repô-lo apagaria silenciosamente aquele trabalho.
+
 - [ ] **Step 1: Substituir `(app)/page.js` inteiro**
 
 ```jsx
@@ -1534,6 +1544,7 @@ export default async function Home() {
   const shortcuts = [
     { href: "/clientes", label: "Clientes", icon: "👥" },
     { href: "/clientes/novo", label: "Novo cliente", icon: "➕" },
+    { href: "/avaliacoes", label: "Avaliações", icon: "⭐" },
   ];
 
   if (authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE)) {
@@ -2976,13 +2987,278 @@ git commit -m "Redesign the invite acceptance screen and use gender-neutral copy
 
 ---
 
+### Task 19: `/avaliacoes` e `/avaliar` — módulo de avaliações
+
+**Files:**
+- Modify: `apps/web/src/app/(app)/avaliacoes/page.js` (arquivo inteiro)
+- Modify: `apps/web/src/app/avaliar/page.js` (arquivo inteiro)
+- Modify: `apps/web/src/app/avaliar/review-form.js` (arquivo inteiro)
+
+**Interfaces:**
+- Consumes: `Card`, `Badge`, `EmptyState`, `Button`, `requireAuthenticatedUser`, `formatRelativeDate`.
+- Não altera `models/review.js` nem `POST /api/v1/reviews`.
+
+Estas telas vieram do módulo de avaliações (`3edff4c`..`48dee01`), construído em paralelo a este redesenho, e ficaram no tema antigo. `/avaliar` é a única tela **pública** do sistema — é para onde o QR code da loja aponta — e por isso continua fora do route group `(app)`, sem shell.
+
+- [ ] **Step 1: Substituir `(app)/avaliacoes/page.js` inteiro**
+
+```jsx
+import requireAuthenticatedUser from "../../require-auth";
+import review from "@/models/review";
+import Badge from "@/components/ui/badge";
+import Card from "@/components/ui/card";
+import EmptyState from "@/components/ui/empty-state";
+import { formatRelativeDate } from "@/lib/format";
+
+function Stars({ rating }) {
+  return (
+    <span aria-label={`Nota ${rating} de 5`} className="text-lg leading-none">
+      <span className="text-accent">{"★".repeat(rating)}</span>
+      <span className="text-line">{"★".repeat(5 - rating)}</span>
+    </span>
+  );
+}
+
+export default async function AvaliacoesPage() {
+  await requireAuthenticatedUser();
+
+  const summary = await review.getSummary();
+  const reviews = await review.findAll();
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
+      <div>
+        <h1 className="text-2xl font-extrabold text-ink">Avaliações</h1>
+        <p className="text-sm text-muted">
+          Link público do QR code da loja: <span className="font-mono">/avaliar</span>
+        </p>
+      </div>
+
+      {summary.total === 0 ? (
+        <EmptyState
+          icon="⭐"
+          title="Nenhuma avaliação ainda"
+          description="Deixe o QR code da loja apontando para /avaliar e as notas dos clientes aparecem aqui."
+        />
+      ) : (
+        <>
+          <Card className="flex items-center gap-4 p-6">
+            <p className="font-display text-4xl font-extrabold text-ink">
+              {summary.average.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+            </p>
+            <div>
+              <Stars rating={Math.round(summary.average)} />
+              <p className="text-sm text-muted">
+                {summary.total === 1 ? "1 avaliação" : `${summary.total} avaliações`}
+              </p>
+            </div>
+          </Card>
+
+          <ul className="flex flex-col gap-3">
+            {reviews.map((listedReview) => (
+              <Card as="li" key={listedReview.id} className="flex flex-col gap-2 p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <Stars rating={listedReview.rating} />
+                  <Badge tone="neutral">{formatRelativeDate(listedReview.created_at)}</Badge>
+                </div>
+                {listedReview.comment && (
+                  <p className="text-sm text-ink">{listedReview.comment}</p>
+                )}
+              </Card>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Substituir `avaliar/page.js` inteiro**
+
+```jsx
+import ReviewForm from "./review-form";
+
+export const metadata = {
+  title: "Avaliar a WeFood",
+  description: "Conte pra gente o que você achou da loja",
+};
+
+// Página pública: sem checagem de sessão de propósito — é para onde o QR code
+// da loja aponta, e o cliente nunca está logado.
+export default function AvaliarPage() {
+  return (
+    <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="text-center">
+          <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
+          <h1 className="mt-2 text-xl font-extrabold text-ink">Como foi sua visita?</h1>
+          <p className="text-sm text-muted">Leva menos de um minuto e é anônimo.</p>
+        </div>
+        <ReviewForm />
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Substituir `avaliar/review-form.js` inteiro**
+
+```jsx
+"use client";
+
+import { useState } from "react";
+
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
+const MAX_COMMENT_LENGTH = 1000;
+
+export default function ReviewForm() {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError(null);
+
+    if (rating === 0) {
+      setError("Escolha uma nota de 1 a 5 estrelas.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    let response;
+    try {
+      response = await fetch("/api/v1/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, comment }),
+      });
+    } catch {
+      setIsSubmitting(false);
+      setError("Não foi possível enviar sua avaliação. Verifique sua conexão e tente de novo.");
+      return;
+    }
+
+    setIsSubmitting(false);
+
+    if (!response.ok) {
+      const body = await response.json();
+      setError(body.message ?? "Não foi possível enviar sua avaliação.");
+      return;
+    }
+
+    setIsSent(true);
+  }
+
+  if (isSent) {
+    return (
+      <Card className="flex flex-col items-center gap-2 p-8 text-center">
+        <p className="text-4xl leading-none" aria-hidden="true">
+          🍦
+        </p>
+        <h2 className="text-xl font-extrabold text-ink">Obrigado pela sua avaliação!</h2>
+        <p className="text-sm text-muted">Sua opinião ajuda a WeFood a melhorar a cada dia.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card as="form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-sm font-medium text-muted">
+          Que nota você dá para a loja?
+        </legend>
+        <div className="flex justify-center gap-1">
+          {RATING_OPTIONS.map((value) => (
+            <label key={value} className="flex min-h-12 min-w-12 cursor-pointer items-center justify-center">
+              <input
+                type="radio"
+                name="rating"
+                value={value}
+                checked={rating === value}
+                onChange={() => setRating(value)}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={`block text-4xl leading-none transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-current ${
+                  value <= rating ? "text-accent" : "text-line"
+                }`}
+              >
+                ★
+              </span>
+              <span className="sr-only">{value === 1 ? "1 estrela" : `${value} estrelas`}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="review-comment" className="text-sm font-medium text-muted">
+          Comentário (opcional)
+        </label>
+        <textarea
+          id="review-comment"
+          rows={4}
+          maxLength={MAX_COMMENT_LENGTH}
+          value={comment}
+          onChange={(event) => setComment(event.target.value)}
+          placeholder="Quer contar mais alguma coisa pra gente?"
+          className="rounded-md border border-line bg-surface px-3 py-2 text-ink placeholder:text-muted"
+        />
+      </div>
+
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Enviando...">
+        Enviar avaliação
+      </Button>
+    </Card>
+  );
+}
+```
+
+As estrelas ganharam alvo de 48px (eram ~40px com `p-1`), que é o mínimo do design system — e essa é a tela tocada por clientes da loja, no celular deles, sem nenhum treino.
+
+- [ ] **Step 4: Verificar no navegador**
+
+Abra `/avaliar` numa janela anônima. Esperado: marca WeFood no topo, cartão creme, cinco estrelas em âmbar (`--color-accent`) que preenchem da esquerda até a tocada, alvo de toque de 48px cada, e **nenhuma navegação interna visível**. Envie sem escolher nota: mensagem de erro em vermelho com `role="alert"`. Envie com nota: o cartão vira a confirmação com o sorvete.
+
+Depois, logado, abra `/avaliacoes`. Esperado: nota média em número grande com as estrelas ao lado, e a lista com data relativa ("hoje", "ontem") em vez do timestamp completo. Sem nenhuma avaliação no banco, aparece o estado vazio.
+
+- [ ] **Step 5: Rodar os testes de avaliações**
+
+`npx jest --runInBand tests/integration/api/v1/reviews`
+Esperado: PASS — a API não muda; é rede de segurança.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add "apps/web/src/app/(app)/avaliacoes" apps/web/src/app/avaliar
+git commit -m "Restyle the review screens with the design system"
+```
+
+---
+
 ## Verificação final
 
-Depois da Task 18, percorra o fluxo inteiro em 375px e em 1440px:
+Depois da Task 19, percorra o fluxo inteiro em 375px e em 1440px:
 
 1. `/login` → entrar
 2. Home: conferir visitas de hoje e faturamento
 3. `/clientes`: buscar, abrir uma ficha
 4. Registrar uma visita para cliente recorrente (origem fechada) e para um cliente novo (origem aberta)
 5. Confirmar o toast de sucesso e a visita nova no topo da timeline
-6. Alternar o tema do sistema operacional entre claro e escuro e reconferir contraste e legibilidade em cada tela
+6. `/avaliacoes` logado, e `/avaliar` numa janela anônima — confirmando que a pública não mostra navegação interna
+7. Alternar o tema do sistema operacional entre claro e escuro e reconferir contraste e legibilidade em cada tela

@@ -103,15 +103,15 @@ O driver `pg` devolve `numeric` **e** `bigint` (`COUNT`) como string. Toda funç
 
 ## Rótulos compartilhados (`apps/web/src/lib/visit-options.js`)
 
-Os rótulos em português de categoria, motivo e origem estão hoje duplicados em `visitas/nova/register-visit-flow.js` e `clientes/[id]/page.js`. O dashboard seria a terceira cópia.
+**Este módulo não precisa mais criar esse arquivo.** O plano do redesign de UX/UI (`docs/superpowers/plans/2026-08-04-ux-ui-redesign.md`, Task 5) já cria `apps/web/src/lib/visit-options.js` e faz `register-visit-flow.js` e `clientes/[id]/page.js` importarem de lá — a extração acontece naturalmente, já que aquele plano reescreve os dois arquivos de qualquer forma.
 
-Novo módulo exporta `CATEGORY_OPTIONS`, `REASON_OPTIONS` e `DISCOVERY_OPTIONS` (listas de `{ value, label }`, na ordem de exibição) e os mapas `value → label` derivados delas. Os dois arquivos existentes passam a importar de lá e perdem suas constantes locais; o dashboard também importa. Os valores continuam batendo com os `CHECK` das tabelas.
+O dashboard apenas **consome** o módulo, junto com o resto do que herda do redesign:
 
-Fica em `src/lib/` e não em `src/models/` porque o que ele carrega é apresentação — o texto em português mostrado ao usuário —, ao lado de `formatCurrency` e `formatPhone`. Os models não têm nenhum uso para rótulos.
+- `CATEGORY_OPTIONS`, `REASON_OPTIONS`, `DISCOVERY_OPTIONS` — listas de `{ value, label }` na ordem de exibição
+- `CATEGORY_LABELS`, `REASON_LABELS`, `DISCOVERY_LABELS` — mapas `value → label`
+- `CATEGORY_CHIP_CLASSES` — mapa `value → classes de cor da categoria`, útil para colorir as barras da seção Produto com os mesmos tons dos chips do formulário de visita
 
-Refatoração de escopo fechado: só move os rótulos, sem mudar comportamento nem tocar em nada além desses dois arquivos.
-
-O redesign de UX/UI reescreve esses mesmos dois arquivos (chips no formulário de visita, nova ficha do cliente) mas **não** centraliza os rótulos — a duplicação continua lá depois dele. Como este módulo roda depois, a extração é feita sobre a versão já redesenhada dos arquivos.
+Os valores continuam batendo com os `CHECK` das tabelas. Se ao começar este módulo o arquivo não existir, é sinal de que o redesign ainda não entrou — vale a mesma instrução da seção anterior: pare e reavalie, em vez de criar uma segunda versão.
 
 ## Permissão
 

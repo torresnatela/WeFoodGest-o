@@ -204,6 +204,11 @@ Os campos de detalhe livre (pedido, motivo, origem) só aparecem depois que a es
 ### `/admin/colaboradores`
 Mesma linguagem visual. O botão *copiar link* do convite já existe — passa a confirmar por toast em vez do texto "Copiado!".
 
+### `/avaliacoes` e `/avaliar`
+Telas do módulo de avaliações (`3edff4c`..`48dee01`), construído em paralelo a este redesenho e entregue no tema antigo. `/avaliacoes` é autenticada e entra no shell; `/avaliar` é a **única tela pública** do sistema — destino do QR code da loja — e fica fora do shell, junto de `/login` e `/cadastro/[token]`.
+
+Em `/avaliacoes`: nota média em número grande com estrelas, datas relativas em vez de timestamp completo, e estado vazio quando não há avaliações. Em `/avaliar`: marca no topo, estrelas em `--color-accent` com alvo de 48px (hoje têm ~40px), e erro com `role="alert"`. É a tela tocada por clientes da loja, sem treino nenhum — o alvo de toque importa mais aqui do que em qualquer outra.
+
 ### `/cadastro/[token]`
 Primeira tela que um colaborador novo vê; fica fora do shell, por não haver sessão ainda. Recebe a marca no topo, os campos com `Input`, e o cartão de convite inválido deixa de ser um parágrafo solto.
 
