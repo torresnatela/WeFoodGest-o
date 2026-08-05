@@ -10,7 +10,7 @@ export default function LogoutButton({ className = "" }) {
     <button
       type="button"
       onClick={handleLogout}
-      className={`text-sm font-medium text-muted hover:text-ink ${className}`}
+      className={`inline-flex min-h-11 items-center text-sm font-medium text-muted hover:text-ink ${className}`}
     >
       Sair
     </button>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import LogoutButton from "./logout-button";
+import NavLink from "./nav-link";
 
 // Estes três são a nav inferior do celular — o esqueleto escolhido fixou três itens.
 const PRIMARY_NAV = [
@@ -26,16 +27,17 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         </Link>
         <nav className="flex flex-col gap-1">
           {sidebarItems.map((item) => (
-            <Link
+            <NavLink
               key={item.href}
               href={item.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              activeClassName="bg-brand-tint text-brand"
             >
               <span aria-hidden="true" className="mr-2">
                 {item.icon}
               </span>
               {item.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
@@ -56,16 +58,17 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {PRIMARY_NAV.map((item) => (
-          <Link
+          <NavLink
             key={item.href}
             href={item.href}
             className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted"
+            activeClassName="text-brand"
           >
             <span aria-hidden="true" className="text-lg">
               {item.icon}
             </span>
             {item.label}
-          </Link>
+          </NavLink>
         ))}
       </nav>
     </div>
