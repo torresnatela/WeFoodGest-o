@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Input from "@/components/ui/input";
+import PhoneInput from "@/components/ui/phone-input";
 
 export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initialPhone = "" }) {
   const [name, setName] = useState("");
@@ -9,103 +15,97 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
   const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
   const [error, setError] = useState(null);
+  const [duplicateId, setDuplicateId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError(null);
+    setDuplicateId(null);
     setIsSubmitting(true);
 
-    const response = await fetch("/api/v1/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        phone,
-        birth_date: birthDate || null,
-        neighborhood: neighborhood || null,
-        city: city || null,
-      }),
-    });
-
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const body = await response.json();
-      setError(body.message ?? "Não foi possível cadastrar o cliente.");
+    let response;
+    try {
+      response = await fetch("/api/v1/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          phone,
+          birth_date: birthDate || null,
+          neighborhood: neighborhood || null,
+          city: city || null,
+        }),
+      });
+    } catch {
+      setIsSubmitting(false);
+      setError("Não foi possível falar com o servidor. Tente de novo.");
       return;
     }
 
-    const createdClient = await response.json();
-    onCreated(createdClient);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setError(body.message ?? "Não foi possível cadastrar o cliente.");
+
+      const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
+      if (lookup.ok) {
+        const lookupBody = await lookup.json();
+        setDuplicateId(lookupBody.clients[0]?.id ?? null);
+      }
+
+      setIsSubmitting(false);
+      return;
+    }
+
+    setIsSubmitting(false);
+    onCreated(await response.json());
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-zinc-950"
-    >
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Nome
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-        />
-      </label>
+    <Card as="form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+      <Input
+        label="Nome"
+        type="text"
+        required
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Telefone
-        <input
-          type="tel"
-          required
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-        />
-      </label>
+      <PhoneInput required value={phone} onChange={setPhone} error={error} />
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Data de nascimento
-        <input
-          type="date"
-          value={birthDate}
-          onChange={(event) => setBirthDate(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-        />
-      </label>
+      {duplicateId && (
+        <Link href={`/clientes/${duplicateId}`} className="text-sm font-semibold text-brand underline">
+          Ver o cliente já cadastrado com esse telefone
+        </Link>
+      )}
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Bairro
-        <input
-          type="text"
-          value={neighborhood}
-          onChange={(event) => setNeighborhood(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-        />
-      </label>
+      <Input
+        label="Data de nascimento"
+        type="date"
+        hint="Opcional"
+        value={birthDate}
+        onChange={(event) => setBirthDate(event.target.value)}
+      />
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Cidade
-        <input
-          type="text"
-          value={city}
-          onChange={(event) => setCity(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-        />
-      </label>
+      <Input
+        label="Bairro"
+        type="text"
+        hint="Opcional"
+        value={neighborhood}
+        onChange={(event) => setNeighborhood(event.target.value)}
+      />
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      <Input
+        label="Cidade"
+        type="text"
+        hint="Opcional"
+        value={city}
+        onChange={(event) => setCity(event.target.value)}
+      />
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-      >
-        {isSubmitting ? "Cadastrando..." : submitLabel}
-      </button>
-    </form>
+      <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Cadastrando...">
+        {submitLabel}
+      </Button>
+    </Card>
   );
 }
