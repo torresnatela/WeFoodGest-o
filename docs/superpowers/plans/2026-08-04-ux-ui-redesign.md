@@ -2744,15 +2744,20 @@ export default function NewUserForm() {
 
   useEffect(() => {
     async function loadRoles() {
-      const response = await fetch("/api/v1/roles");
-      if (!response.ok) {
+      const response = await fetch("/api/v1/roles").catch(() => null);
+      const body = response?.ok ? await response.json().catch(() => ({})) : {};
+
+      // Uma lista ausente precisa virar mensagem, não estado inválido: guardar
+      // `undefined` em `roles` faria o `roles.map()` da renderização seguinte
+      // derrubar o formulário inteiro, e um <select> vazio e mudo não diria ao
+      // admin o que houve.
+      if (!body.roles?.length) {
+        setError("Não foi possível carregar os papéis. Recarregue a página.");
         return;
       }
-      const body = await response.json().catch(() => ({}));
+
       setRoles(body.roles);
-      if (body.roles.length > 0) {
-        setRole(body.roles.find((r) => r.key === "colaborador")?.key ?? body.roles[0].key);
-      }
+      setRole(body.roles.find((r) => r.key === "colaborador")?.key ?? body.roles[0].key);
     }
     loadRoles();
   }, []);
@@ -2793,8 +2798,14 @@ export default function NewUserForm() {
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(inviteUrl);
-    toast.success("Link copiado.");
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      toast.success("Link copiado.");
+    } catch {
+      // A área de transferência é negada em contexto não seguro e quando o
+      // usuário recusa a permissão. Sem este aviso, o admin acha que copiou.
+      toast.error("Não foi possível copiar. Selecione o link e copie à mão.");
+    }
   }
 
   return (
