@@ -3,6 +3,7 @@ const retry = require("async-retry");
 const database = require("@wefood/database");
 const migrator = require("@wefood/database/migrator");
 const webserver = require("@/infra/webserver");
+const visit = require("@/models/visit");
 
 if (process.env.NODE_ENV !== "test") {
   throw new Error("orchestrator.js should only be used in tests");
@@ -51,9 +52,25 @@ async function runPendingMigrations() {
   await migrator.runPendingMigrations();
 }
 
+// visits.created_at defaults to now() and visit.create() takes no date, but
+// the dashboard is only meaningful with visits spread over time. This creates
+// the visit through the real model and then backdates it, so the insert path
+// under test stays real.
+async function createVisitAt({ createdAt, ...visitInput }) {
+  const createdVisit = await visit.create(visitInput);
+
+  await database.query({
+    text: "UPDATE visits SET created_at = $1 WHERE id = $2;",
+    values: [createdAt, createdVisit.id],
+  });
+
+  return { ...createdVisit, created_at: createdAt };
+}
+
 module.exports = {
   waitForAllServices,
   dropAllTables,
   runPendingMigrations,
+  createVisitAt,
   webserverUrl: webserver.host,
 };
