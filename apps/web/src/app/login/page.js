@@ -35,7 +35,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível entrar.");
       return;
     }
