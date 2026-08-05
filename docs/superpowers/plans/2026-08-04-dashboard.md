@@ -10,7 +10,33 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-04-dashboard-design.md`
 
-## Status: Tasks 1–9 are done and merged
+## Status: complete
+
+All 13 tasks are implemented, reviewed and merged on `main`. Lint clean, 49 test
+suites / 172 tests green. `/dashboard` is live behind the `dashboard.visualizar`
+permission, linked from the sidebar and the home page.
+
+Two things were deliberately left undone, recorded here because the workspace
+notes are gone:
+
+- **The sidebar's Dashboard item does not mark itself active.** `app-shell.js`
+  sets `aria-current` on nothing. The fix is a small client child calling
+  `usePathname()` — which works without making the shell a Client Component,
+  since it already renders the `"use client"` `LogoutButton`. Parked because the
+  redesign workstream owns that file and already has a `nav-link.js` in flight
+  doing exactly this; implementing it here would collide.
+- **`bg-brand-vivid` measures 2.93:1 against the page background**, a marginal
+  miss of the 3:1 minimum for non-text graphics. It is the visits bar and the
+  default bar fill. Fixing it means changing the token in `globals.css`, which
+  belongs to the redesign workstream.
+
+Smaller residuals: `movement.js`'s `GRANULARITY_INTERVALS` guard should use
+`Object.hasOwn` (unreachable today — granularity only ever comes from the closed
+`PERIODS` list); `byNeighborhood`'s `NULLS LAST` tiebreak is untested; the
+`get-overview` transposition check only holds because the fixture's reason and
+discovery source differ.
+
+## History: Tasks 1–9 were done and merged first
 
 Tasks 1–9 (the whole data layer) were implemented, reviewed and committed on
 `main` in `0a0f595..25654ba`. The full suite is green at 47 suites / 151 tests.
