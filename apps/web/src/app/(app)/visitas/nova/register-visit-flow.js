@@ -67,6 +67,11 @@ export default function RegisterVisitFlow({ initialClient }) {
 
   useEffect(() => {
     if (foundClient) {
+      // `loadHistory` começa com um await, então nada chama setState de forma
+      // síncrona aqui — a regra do lint não enxerga através da função async.
+      // Carregar dados quando o cliente escolhido muda é o caso legítimo de
+      // efeito, não o que a regra existe para impedir.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadHistory(foundClient.id);
     }
   }, [foundClient, loadHistory]);
