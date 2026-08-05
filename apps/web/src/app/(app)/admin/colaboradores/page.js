@@ -1,9 +1,10 @@
-import { cookies } from "next/headers";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import authentication from "@/models/authentication";
+import requireAuthenticatedUser from "../../../require-auth";
 import authorization from "@/models/authorization";
 import user from "@/models/user";
+import Badge from "@/components/ui/badge";
+import Card from "@/components/ui/card";
 import NewUserForm from "./new-user-form";
 
 const MANAGE_USERS_FEATURE = "usuarios.gerenciar";
@@ -14,13 +15,7 @@ const STATUS_LABELS = {
 };
 
 export default async function ColaboradoresPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("session_id")?.value;
-  const authenticatedUser = await authentication.getUserFromSessionToken(token);
-
-  if (!authenticatedUser) {
-    redirect("/login");
-  }
+  const authenticatedUser = await requireAuthenticatedUser();
 
   if (!authorization.userCan(authenticatedUser, MANAGE_USERS_FEATURE)) {
     notFound();
@@ -29,35 +24,26 @@ export default async function ColaboradoresPage() {
   const users = await user.findAll();
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-4 py-16 dark:bg-black">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Colaboradores</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
+      <h1 className="text-2xl font-extrabold text-ink">Colaboradores</h1>
 
-        <NewUserForm />
+      <NewUserForm />
 
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-black/[.08] text-zinc-600 dark:border-white/[.145] dark:text-zinc-400">
-              <th className="py-2 font-medium">Nome</th>
-              <th className="py-2 font-medium">Email</th>
-              <th className="py-2 font-medium">Role</th>
-              <th className="py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((listedUser) => (
-              <tr
-                key={listedUser.id}
-                className="border-b border-black/[.08] text-black dark:border-white/[.145] dark:text-zinc-50"
-              >
-                <td className="py-2">{listedUser.name}</td>
-                <td className="py-2">{listedUser.email}</td>
-                <td className="py-2">{listedUser.role.name}</td>
-                <td className="py-2">{STATUS_LABELS[listedUser.status] ?? listedUser.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-2">
+        {users.map((listedUser) => (
+          <Card key={listedUser.id} className="flex items-center justify-between gap-3 p-4">
+            <div>
+              <p className="font-semibold text-ink">{listedUser.name}</p>
+              <p className="text-sm text-muted">{listedUser.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge tone="neutral">{listedUser.role.name}</Badge>
+              <Badge tone={listedUser.status === "active" ? "success" : "brand"}>
+                {STATUS_LABELS[listedUser.status] ?? listedUser.status}
+              </Badge>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
