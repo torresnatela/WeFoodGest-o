@@ -202,7 +202,12 @@ Rolagem única, com o botão fixo no rodapé:
 Os campos de detalhe livre (pedido, motivo, origem) só aparecem depois que a escolha correspondente é feita, para não ocupar tela à toa.
 
 ### `/admin/colaboradores`
-Mesma linguagem visual. O link de convite gerado ganha botão *copiar link* com confirmação por toast.
+Mesma linguagem visual. O botão *copiar link* do convite já existe — passa a confirmar por toast em vez do texto "Copiado!".
+
+### `/cadastro/[token]`
+Primeira tela que um colaborador novo vê; fica fora do shell, por não haver sessão ainda. Recebe a marca no topo, os campos com `Input`, e o cartão de convite inválido deixa de ser um parágrafo solto.
+
+Corrige também um defeito de conteúdo: o texto está fixo no feminino ("Bem-vinda", "Você foi convidada"), o que erra o gênero de qualquer pessoa cujo gênero não seja esse. Como o sistema não guarda gênero, a redação passa a ser neutra ("Boas-vindas", "Seu convite é para o papel de …").
 
 ---
 
