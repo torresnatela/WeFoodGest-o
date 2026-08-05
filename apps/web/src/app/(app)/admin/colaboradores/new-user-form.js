@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Alert from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
@@ -15,7 +16,10 @@ export default function NewUserForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("colaborador");
+  // `error` é do campo email — o servidor recusa email duplicado. A lista de
+  // papéis que não carregou e a queda de rede não são sobre o email.
   const [error, setError] = useState(null);
+  const [pageError, setPageError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inviteUrl, setInviteUrl] = useState(null);
 
@@ -29,7 +33,7 @@ export default function NewUserForm() {
       // derrubar o formulário inteiro, e um <select> vazio e mudo não diria ao
       // admin o que houve.
       if (!body.roles?.length) {
-        setError("Não foi possível carregar os papéis. Recarregue a página.");
+        setPageError("Não foi possível carregar os papéis. Recarregue a página.");
         return;
       }
 
@@ -42,6 +46,7 @@ export default function NewUserForm() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError(null);
+    setPageError(null);
     setInviteUrl(null);
     setIsSubmitting(true);
 
@@ -54,7 +59,7 @@ export default function NewUserForm() {
       });
     } catch {
       setIsSubmitting(false);
-      setError("Não foi possível falar com o servidor. Tente de novo.");
+      setPageError("Não foi possível falar com o servidor. Tente de novo.");
       return;
     }
 
@@ -66,7 +71,15 @@ export default function NewUserForm() {
       return;
     }
 
-    const body = await response.json();
+    // Sem o guard, um 2xx com corpo ilegível estoura em `body.invite.url` e o
+    // admin fica sem link e sem mensagem, com o colaborador já criado.
+    const body = await response.json().catch(() => ({}));
+
+    if (!body.invite?.url) {
+      setPageError("Não foi possível cadastrar o colaborador.");
+      return;
+    }
+
     setInviteUrl(body.invite.url);
     setName("");
     setEmail("");
@@ -125,6 +138,8 @@ export default function NewUserForm() {
             ))}
           </select>
         </div>
+
+        <Alert>{pageError}</Alert>
 
         <Button type="submit" isLoading={isSubmitting} loadingLabel="Cadastrando...">
           Cadastrar

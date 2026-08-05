@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import Alert from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
@@ -14,13 +15,18 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
   const [birthDate, setBirthDate] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
+  // `error` é do campo telefone — é o único erro que o servidor atribui a um
+  // campo. `pageError` é tudo o que não é sobre um campo: queda de rede e
+  // resposta ilegível não tornam o telefone inválido.
   const [error, setError] = useState(null);
+  const [pageError, setPageError] = useState(null);
   const [duplicateId, setDuplicateId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError(null);
+    setPageError(null);
     setDuplicateId(null);
     setIsSubmitting(true);
 
@@ -39,7 +45,7 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
       });
     } catch {
       setIsSubmitting(false);
-      setError("Não foi possível falar com o servidor. Tente de novo.");
+      setPageError("Não foi possível falar com o servidor. Tente de novo.");
       return;
     }
 
@@ -67,7 +73,17 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
     }
 
     setIsSubmitting(false);
-    onCreated(await response.json());
+
+    // Um 2xx com corpo ilegível não pode virar `onCreated(undefined)`: o fluxo
+    // de visita seguiria sem cliente e quebraria na tela seguinte.
+    const createdClient = await response.json().catch(() => ({}));
+
+    if (!createdClient.id) {
+      setPageError("Não foi possível cadastrar o cliente.");
+      return;
+    }
+
+    onCreated(createdClient);
   }
 
   return (
@@ -111,6 +127,8 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
         value={city}
         onChange={(event) => setCity(event.target.value)}
       />
+
+      <Alert>{pageError}</Alert>
 
       <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Cadastrando...">
         {submitLabel}

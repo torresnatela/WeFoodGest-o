@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Alert from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
@@ -11,12 +12,14 @@ export default function AcceptInviteForm({ token, name, roleName }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [error, setError] = useState(null);
+  // Nenhuma mensagem daqui é de um campo só: a divergência entre as senhas é
+  // sobre o par, e queda de rede não é sobre campo nenhum.
+  const [pageError, setPageError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError(null);
+    setPageError(null);
     setIsSubmitting(true);
 
     let response;
@@ -28,7 +31,7 @@ export default function AcceptInviteForm({ token, name, roleName }) {
       });
     } catch {
       setIsSubmitting(false);
-      setError("Não foi possível falar com o servidor. Tente de novo.");
+      setPageError("Não foi possível falar com o servidor. Tente de novo.");
       return;
     }
 
@@ -36,7 +39,7 @@ export default function AcceptInviteForm({ token, name, roleName }) {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      setError(body.message ?? "Não foi possível concluir o cadastro.");
+      setPageError(body.message ?? "Não foi possível concluir o cadastro.");
       return;
     }
 
@@ -78,8 +81,9 @@ export default function AcceptInviteForm({ token, name, roleName }) {
           autoComplete="new-password"
           value={passwordConfirmation}
           onChange={(event) => setPasswordConfirmation(event.target.value)}
-          error={error}
         />
+
+        <Alert>{pageError}</Alert>
 
         <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Concluindo...">
           Concluir cadastro

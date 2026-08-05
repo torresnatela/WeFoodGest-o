@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Alert from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
@@ -11,12 +12,15 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  // O servidor não diz qual campo está errado — nem poderia, para não revelar
+  // se o email existe. Marcar a senha como inválida seria um palpite, então
+  // toda mensagem daqui é de página, não de campo.
+  const [pageError, setPageError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError(null);
+    setPageError(null);
     setIsSubmitting(true);
 
     let response;
@@ -28,7 +32,7 @@ export default function LoginPage() {
       });
     } catch {
       setIsSubmitting(false);
-      setError("Não foi possível falar com o servidor. Tente de novo.");
+      setPageError("Não foi possível falar com o servidor. Tente de novo.");
       return;
     }
 
@@ -36,7 +40,7 @@ export default function LoginPage() {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      setError(body.message ?? "Não foi possível entrar.");
+      setPageError(body.message ?? "Não foi possível entrar.");
       return;
     }
 
@@ -69,8 +73,9 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            error={error}
           />
+
+          <Alert>{pageError}</Alert>
 
           <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Entrando...">
             Entrar
