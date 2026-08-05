@@ -1017,7 +1017,13 @@ O `AppShell` é Server Component e não conhece a rota atual. Marcar o item ativ
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function NavLink({ href, className = "", activeClassName = "", children }) {
+export default function NavLink({
+  href,
+  className = "",
+  activeClassName = "",
+  inactiveClassName = "",
+  children,
+}) {
   const pathname = usePathname();
   const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -1025,7 +1031,7 @@ export default function NavLink({ href, className = "", activeClassName = "", ch
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
-      className={`${className} ${isActive ? activeClassName : ""}`}
+      className={`${className} ${isActive ? activeClassName : inactiveClassName}`}
     >
       {children}
     </Link>
@@ -1033,7 +1039,11 @@ export default function NavLink({ href, className = "", activeClassName = "", ch
 }
 ```
 
-A comparação de `/` é exata porque `startsWith("/")` casaria com toda rota do app.
+Dois detalhes que não são estilo, são correção:
+
+A comparação de `/` é exata porque `startsWith("/")` casaria com toda rota do app e deixaria "Início" sempre aceso.
+
+Os estados ativo e inativo são **excludentes**, cada um com sua própria cor — nunca uma cor base sobrescrita por outra. Concatenar `text-brand` por cima de um `text-muted` fixo não funciona: as duas classes têm a mesma especificidade, e quem vence é a que o Tailwind declara por último na folha compilada, não a que aparece por último no `className`. Como `.text-muted` sai depois de `.text-brand` na ordenação alfabética, o cinza venceria sempre e o item ativo nunca mudaria de cor.
 
 - [ ] **Step 5: Escrever `app-shell.js`**
 
@@ -1070,8 +1080,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
             <NavLink
               key={item.href}
               href={item.href}
-              className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
-              activeClassName="bg-brand-tint text-brand"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-surface-2"
+              activeClassName="bg-brand-tint font-bold text-brand"
+              inactiveClassName="font-medium text-muted hover:text-ink"
             >
               <span aria-hidden="true" className="mr-2">
                 {item.icon}
@@ -1101,8 +1112,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
           <NavLink
             key={item.href}
             href={item.href}
-            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted"
-            activeClassName="text-brand"
+            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs"
+            activeClassName="font-bold text-brand"
+            inactiveClassName="font-medium text-muted"
           >
             <span aria-hidden="true" className="text-lg">
               {item.icon}
