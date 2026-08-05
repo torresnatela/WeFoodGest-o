@@ -75,4 +75,17 @@ describe("formatRelativeDate()", () => {
   test("devolve traço para nulo", () => {
     expect(formatRelativeDate(null)).toBe("—");
   });
+
+  test("usa o dia de São Paulo, não o do servidor", () => {
+    // 01:00Z do dia 5 é 22:00 do dia 4 em São Paulo; 14:00Z do dia 5 é 11:00
+    // do dia 5. Em UTC as duas datas caem no mesmo dia e o resultado seria
+    // "hoje" — em São Paulo são dias diferentes.
+    jest.useFakeTimers({ now: new Date("2026-08-05T14:00:00Z") });
+
+    try {
+      expect(formatRelativeDate(new Date("2026-08-05T01:00:00Z"))).toBe("ontem");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

@@ -5,6 +5,7 @@ import requireAuthenticatedUser from "../../../require-auth";
 import client from "@/models/client";
 import visit from "@/models/visit";
 import Badge from "@/components/ui/badge";
+import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { formatCurrency, formatPhone, formatRelativeDate } from "@/lib/format";
@@ -46,12 +47,9 @@ export default async function ClienteDetailPage({ params }) {
             )}
           </div>
         </div>
-        <Link
-          href={`/visitas/nova?clientId=${foundClient.id}`}
-          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
-        >
+        <Button as={Link} href={`/visitas/nova?clientId=${foundClient.id}`}>
           Registrar visita
-        </Link>
+        </Button>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -72,6 +70,7 @@ export default async function ClienteDetailPage({ params }) {
                     {new Date(currentVisit.created_at).toLocaleTimeString("pt-BR", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "America/Sao_Paulo",
                     })}
                   </span>
                 </p>
