@@ -41,12 +41,19 @@ function formatPhone(value) {
     return "";
   }
 
+  // Acima de 11 dígitos nenhuma máscara brasileira serve — um número com código
+  // do país, por exemplo. Cortar para caber renderizaria um telefone diferente
+  // do que está gravado, e um dígito mais curto. Devolve a entrada como veio.
+  if (digits.length > 11) {
+    return String(value);
+  }
+
   if (digits.length <= 2) {
     return `(${digits}`;
   }
 
   const areaCode = digits.slice(0, 2);
-  const rest = digits.slice(2, 11);
+  const rest = digits.slice(2);
 
   if (rest.length <= 4) {
     return `(${areaCode}) ${rest}`;

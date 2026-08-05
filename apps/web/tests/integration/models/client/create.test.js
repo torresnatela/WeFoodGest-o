@@ -33,6 +33,15 @@ describe("client.create()", () => {
     expect(createdClient.city).toBe("São Paulo");
   });
 
+  test("stores only the digits of a formatted phone", async () => {
+    const createdClient = await client.create({
+      name: "Cliente Formatado",
+      phone: "(15) 99123-4001",
+    });
+
+    expect(createdClient.phone).toBe("15991234001");
+  });
+
   test("rejects a duplicate phone", async () => {
     await client.create({ name: "Primeiro Cliente", phone: "11999990003" });
 

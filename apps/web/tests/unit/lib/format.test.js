@@ -28,6 +28,11 @@ describe("formatPhone()", () => {
     expect(formatPhone("")).toBe("");
     expect(formatPhone(null)).toBe("");
   });
+
+  test("devolve a entrada crua acima de 11 dígitos", () => {
+    expect(formatPhone("5515991234001")).toBe("5515991234001");
+    expect(formatPhone("+55 (15) 99123-4001")).toBe("+55 (15) 99123-4001");
+  });
 });
 
 describe("formatCurrency()", () => {
