@@ -25,3 +25,6 @@ npm-debug.log*
 
 # docker
 postgres-data/
+
+# brainstorming visual companion
+.superpowers/
