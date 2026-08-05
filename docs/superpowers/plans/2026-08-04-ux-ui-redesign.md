@@ -709,7 +709,7 @@ git commit -m "Add Input, PhoneInput, and CurrencyInput components"
 
 **Interfaces:**
 - Produces:
-  - `<Chip selected onToggle role="checkbox"|"radio" tone>…</Chip>`
+  - `<Chip selected onToggle role="checkbox"|"radio" className>…</Chip>` — sem prop `tone`: quem precisa de cor por categoria passa as classes de `CATEGORY_CHIP_CLASSES` via `className`
   - de `@/lib/visit-options`: `CATEGORY_OPTIONS`, `REASON_OPTIONS`, `DISCOVERY_OPTIONS` (cada um `{value, label}[]`), `CATEGORY_LABELS`, `REASON_LABELS`, `DISCOVERY_LABELS` (mapas `value → label`) e `CATEGORY_CHIP_CLASSES` (mapa `value → string de classes`).
 
 - [ ] **Step 1: Escrever `visit-options.js`**
