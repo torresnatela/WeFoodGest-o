@@ -13,11 +13,23 @@ Este módulo entrega essa visão: uma tela `/dashboard` que responde, para um pe
 
 O dashboard é somente leitura. Nenhuma tabela nova é criada: tudo sai de `clients`, `visits`, `visit_order_items` e `users`.
 
+## Dependência: o redesign de UX/UI
+
+Este spec **assume o redesign de UX/UI (`2026-08-04-ux-ui-redesign-design.md`) já implementado**, e portanto deve ser executado depois dele. O dashboard consome de lá:
+
+- os tokens de tema (`bg-bg`, `bg-surface`, `bg-surface-2`, `border-line`, `text-ink`, `text-muted`, `brand`, `brand-vivid`, `accent`) — nenhum componente do dashboard escreve hex nem classe `dark:`;
+- os primitivos `Card`, `Badge` e `EmptyState` de `src/components/ui/`;
+- `formatCurrency` de `src/lib/`;
+- `requireAuthenticatedUser()` de `src/app/require-auth.js`;
+- o `AppShell` e a paleta por categoria de pedido (`sorvete`, `milkshake`, …), reaproveitada nas barras da seção Produto.
+
+Se o redesign ainda não tiver entrado quando esta implementação começar, **pare e reavalie** em vez de recriar essas peças — duplicá-las é o único jeito de este módulo dar errado de forma cara.
+
 ## Decisões de arquitetura
 
 **Model granular, página Server Component, sem rota de API.** `models/dashboard.js` expõe uma função por pergunta; a página `/dashboard` chama o model direto, como `/clientes` já faz. Não existe hoje nenhum consumidor dos dados agregados além da própria página, então uma rota de API seria uma camada sem uso — e a página perderia a renderização no servidor.
 
-**Sem biblioteca de gráficos.** Cards com os números e barras feitas com `div` + Tailwind. Zero dependência nova, zero componente client, tudo renderizado no servidor.
+**Sem biblioteca de gráficos.** Cards com os números e barras feitas com `div` + tokens do tema. Zero dependência nova, zero componente client, tudo renderizado no servidor.
 
 **Sem componente client em todo o módulo.** O filtro de período são `<Link>`s que trocam `?periodo=` e recarregam a página. Nenhum arquivo do módulo leva `"use client"`.
 
@@ -78,25 +90,28 @@ Detalhes que não são óbvios pela assinatura:
 - **`timeline.bucket`** é uma **string** no formato `YYYY-MM-DDTHH:MM:SS`, produzida por `to_char`, representando a hora de parede em São Paulo. Não é um `Date`: devolver `Date` faria o horário ser reinterpretado no fuso do processo Node e o rótulo do gráfico sair deslocado. Como string, o que o model devolve é exatamente o que a tela mostra, e o teste consegue afirmar o valor exato.
 - **`byDiscoverySource` / `byReason`** agrupam pela coluna, ordenam por `visits DESC` e calculam `percentage` sobre o total de visitas do período. Valores sem nenhuma visita no período são omitidos — a lista mostra o que aconteceu, não todas as opções possíveis.
 - **`percentage`** é um `Number` de 0 a 100 arredondado em uma casa decimal, calculado no JS a partir das contagens (não no SQL), para que as porcentagens e os totais nunca discordem por arredondamento no banco.
-- **`birthdaysOfMonth(month)`** recebe o mês como número de 1 a 12.
 - **`byCategory`** conta `COUNT(DISTINCT v.id)` por categoria e calcula `averageTicket` como a média de `amount_spent` das visitas que incluíram aquela categoria. Como uma visita pode ter várias categorias, as porcentagens somam mais de 100% — a tela avisa isso explicitamente.
 - **`newVsReturningClients`**: cliente **novo** é aquele cuja primeira visita registrada (`MIN(created_at)` sobre *todas* as visitas dele, sem filtro de período) cai dentro do período; **recorrente** é quem visitou no período mas já tinha visita anterior a ele. Conta clientes distintos, não visitas.
 - **`topClients`** ordena por `revenue DESC`, depois `visits DESC`, depois `name` — o desempate por nome deixa o resultado estável entre execuções.
 - **`byNeighborhood`** agrupa por `(neighborhood, city)` e devolve os nulos como `null`; a formatação "Não informado" é da tela, não do model.
 - **`byCollaborator`** usa `LEFT JOIN users`, então visitas com `registered_by` nulo (usuário removido) viram uma linha com `userId: null`.
-- **`birthdaysOfMonth`** filtra `EXTRACT(MONTH FROM birth_date) = $1`, ignora clientes sem data de nascimento e ordena por dia e nome. **Não** usa o filtro de período: é sempre o mês corrente. `getOverview` a chama com o mês atual em `America/Sao_Paulo`.
+- **`birthdaysOfMonth(month)`** recebe o mês como número de 1 a 12, filtra `EXTRACT(MONTH FROM birth_date) = $1`, ignora clientes sem data de nascimento e ordena por dia e nome. **Não** usa o filtro de período: é sempre o mês corrente. `getOverview` a chama com o mês atual em `America/Sao_Paulo`.
 
 ### Normalização de tipos
 
 O driver `pg` devolve `numeric` **e** `bigint` (`COUNT`) como string. Toda função converte esses campos para `Number` antes de retornar, para a página e os testes receberem números. É a fronteira do model que faz isso — nenhum consumidor precisa saber que veio string.
 
-## Rótulos compartilhados (`apps/web/src/models/visit-options.js`)
+## Rótulos compartilhados (`apps/web/src/lib/visit-options.js`)
 
 Os rótulos em português de categoria, motivo e origem estão hoje duplicados em `visitas/nova/register-visit-flow.js` e `clientes/[id]/page.js`. O dashboard seria a terceira cópia.
 
 Novo módulo exporta `CATEGORY_OPTIONS`, `REASON_OPTIONS` e `DISCOVERY_OPTIONS` (listas de `{ value, label }`, na ordem de exibição) e os mapas `value → label` derivados delas. Os dois arquivos existentes passam a importar de lá e perdem suas constantes locais; o dashboard também importa. Os valores continuam batendo com os `CHECK` das tabelas.
 
+Fica em `src/lib/` e não em `src/models/` porque o que ele carrega é apresentação — o texto em português mostrado ao usuário —, ao lado de `formatCurrency` e `formatPhone`. Os models não têm nenhum uso para rótulos.
+
 Refatoração de escopo fechado: só move os rótulos, sem mudar comportamento nem tocar em nada além desses dois arquivos.
+
+O redesign de UX/UI reescreve esses mesmos dois arquivos (chips no formulário de visita, nova ficha do cliente) mas **não** centraliza os rótulos — a duplicação continua lá depois dele. Como este módulo roda depois, a extração é feita sobre a versão já redesenhada dos arquivos.
 
 ## Permissão
 
@@ -104,18 +119,33 @@ Nova migration insere a feature `dashboard.visualizar` ("Visualizar dashboard") 
 
 `role_features` não é tocada: o admin já enxerga tudo por `is_super`, e o colaborador começa sem a permissão — o admin concede quando quiser.
 
-A página `/dashboard` chama `notFound()` para usuário sem a permissão, mesmo padrão de `/admin/colaboradores`, e `redirect("/login")` para quem não tem sessão. O link no home aparece só para quem pode ver, via `authorization.userCan`.
+A página `/dashboard` usa `requireAuthenticatedUser()` e depois chama `notFound()` para usuário sem a permissão, mesmo padrão de `/admin/colaboradores`.
+
+### Entrada na navegação
+
+O `AppShell` do redesign ganha a prop `canViewDashboard` (irmã de `canManageUsers`, calculada com `authorization.userCan(user, "dashboard.visualizar")`):
+
+- **≥1024px:** item *Dashboard* na sidebar, entre *Início* e *Clientes*, exibido só quando `canViewDashboard`.
+- **<1024px:** a nav inferior continua com três itens, como o redesign decidiu — mexer nisso desfaria uma decisão de UX já tomada. No celular o acesso é um cartão *Dashboard* no painel de Início, também condicionado à permissão.
+
+É a única alteração que este módulo faz em arquivo do redesign, e é aditiva.
 
 ## Telas (`apps/web/src/app/dashboard/`)
 
-Todos Server Components:
+Todos Server Components, todos usando os tokens e primitivos do redesign — nenhum hex, nenhuma classe `dark:`:
 
-- `page.js` — autenticação, permissão, `resolveRange`, `getOverview` e a montagem das seções.
-- `period-filter.js` — os quatro `<Link>` de período, destacando o ativo.
-- `stat-card.js` — card de número grande com rótulo.
-- `bar-list.js` — lista de barras horizontais: `[{ label, value, percentage, note }]`, largura da barra proporcional à maior linha. Reaproveitado por marketing, produto, bairros e colaboradores.
+- `page.js` — `requireAuthenticatedUser()`, checagem de permissão, `resolveRange`, `getOverview` e a montagem das seções.
+- `period-filter.js` — os quatro `<Link>` de período em forma de chips (`rounded-pill`), o ativo em `bg-brand` com texto branco, os demais em `bg-surface border-line`. O ativo leva `aria-current="page"`.
+- `stat-card.js` — envolve o `Card` do design system: número grande em `text-ink` com a fonte de display, rótulo em `text-muted`.
+- `bar-list.js` — lista de barras horizontais: `[{ label, value, percentage, note, tone }]`, largura proporcional à **maior linha** (não ao total), para que a comparação visual continue legível quando o topo tem 12%. Reaproveitado por marketing, produto, bairros e colaboradores.
 - `timeline-chart.js` — barras verticais do movimento, altura proporcional ao maior valor.
-- `format.js` — `Intl.NumberFormat` pt-BR para moeda e números, e a formatação do rótulo de cada bucket a partir da string `YYYY-MM-DDTHH:MM:SS` (`"14h"`, `"04/08"`, `"04/08 – 10/08"`), por recorte da própria string, sem reconstruir um `Date`.
+- `bucket-label.js` — converte a string `YYYY-MM-DDTHH:MM:SS` no rótulo do eixo (`"14h"`, `"04/08"`, `"04/08 – 10/08"`) por recorte da própria string, sem reconstruir um `Date`.
+
+Moeda e números saem de `formatCurrency` (`src/lib/`), do redesign — o dashboard não cria formatador próprio.
+
+**Cor das barras.** Por padrão `--color-brand-vivid`; na seção Produto, cada barra usa a cor da sua categoria, da paleta de categorias do redesign, para a leitura bater com os chips que a atendente já vê no formulário de visita. Rótulo e valor ficam **fora** da barra, em `text-ink`/`text-muted`: `--color-brand-vivid` rende 3,1:1 contra branco e não pode receber texto claro.
+
+**Acessibilidade.** Cada barra é uma linha de texto legível por si (rótulo, valor e porcentagem em texto real, não só largura), então o gráfico não depende de cor nem de leitura visual. `timeline-chart` e `bar-list` são `<ul>`/`<li>` com o valor no conteúdo — leitor de tela lê a série inteira sem `aria-label` sintético.
 
 Seções da página, em ordem:
 
@@ -128,7 +158,7 @@ Seções da página, em ordem:
 
 ## Erros e estados vazios
 
-Período sem visitas: cards zerados, ticket médio `R$ 0,00`, gráfico com todas as barras em zero e cada lista com "Sem dados no período". Nenhuma dessas situações é erro — nenhuma exceção é lançada e nenhum `NotFoundError` é usado para "não há dados".
+Período sem visitas: cards zerados, ticket médio `R$ 0,00`, gráfico com todas as barras em zero e cada lista com o `EmptyState` do design system ("Sem dados no período"). Nenhuma dessas situações é erro — nenhuma exceção é lançada e nenhum `NotFoundError` é usado para "não há dados".
 
 Bairro, cidade e colaborador nulos viram "Não informado" na tela.
 
@@ -164,3 +194,5 @@ Fronteiras de período são testadas em `summary`: visita exatamente em `from` e
 - Cache/materialização das agregações: o volume de uma loja não justifica, as queries batem direto nas tabelas.
 - Gráficos interativos (tooltip, zoom, drill-down).
 - Dados de estoque, caixa ou custo — não existem no schema; o dashboard só enxerga visitas.
+- Métricas de avaliação (nota média, volume de avaliações). A tabela `reviews` é de outro módulo em andamento (`2026-08-04-avaliacoes-design.md`), que já entrega sua própria tela de leitura em `/avaliacoes`. Trazer a nota para cá é uma extensão natural depois que os dois módulos estiverem no `main`, não parte desta entrega.
+- Testes automatizados de componente visual — o projeto não tem infraestrutura de teste de React, e o redesign já decidiu não montá-la. A verificação das telas é manual, em 375px e 1440px.
