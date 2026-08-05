@@ -5,11 +5,21 @@ import Card from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { formatRelativeDate } from "@/lib/format";
 
+// `role="img"` porque um <span> é `role="generic"`, e ARIA proíbe nome
+// acessível em genérico: o leitor de tela cairia nos glifos crus. A nota vai
+// no rótulo sem arredondar — os glifos é que arredondam.
 function Stars({ rating }) {
+  const filledCount = Math.round(rating);
+  const label = Number(rating).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
   return (
-    <span aria-label={`Nota ${rating} de 5`} className="text-lg leading-none">
-      <span className="text-accent">{"★".repeat(rating)}</span>
-      <span className="text-line">{"★".repeat(5 - rating)}</span>
+    <span role="img" aria-label={`Nota ${label} de 5`} className="text-lg leading-none">
+      <span aria-hidden="true" className="text-accent">
+        {"★".repeat(filledCount)}
+      </span>
+      <span aria-hidden="true" className="text-line">
+        {"☆".repeat(5 - filledCount)}
+      </span>
     </span>
   );
 }
@@ -42,7 +52,7 @@ export default async function AvaliacoesPage() {
               {summary.average.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
             </p>
             <div>
-              <Stars rating={Math.round(summary.average)} />
+              <Stars rating={summary.average} />
               <p className="text-sm text-muted">
                 {summary.total === 1 ? "1 avaliação" : `${summary.total} avaliações`}
               </p>

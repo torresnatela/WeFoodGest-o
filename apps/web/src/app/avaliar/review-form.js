@@ -85,7 +85,7 @@ export default function ReviewForm() {
                   value <= rating ? "text-accent" : "text-line"
                 }`}
               >
-                ★
+                {value <= rating ? "★" : "☆"}
               </span>
               <span className="sr-only">{value === 1 ? "1 estrela" : `${value} estrelas`}</span>
             </label>
