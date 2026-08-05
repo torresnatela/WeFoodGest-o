@@ -18,7 +18,8 @@
 - Nenhum componente usa a variante `dark:`. O modo escuro acontece pela troca das variáveis CSS em `globals.css`.
 - Nenhuma migration. O schema do banco não muda.
 - Contratos de API existentes não mudam; só recebem campos aditivos.
-- Alvos de toque: mínimo 44px em botões, 48px em chips.
+- Alvos de toque: mínimo 44px em botões, 48px em chips. Sem exceções — por isso o `Button` tem só os tamanhos `md` (44px) e `lg` (52px).
+- Texto sobre preenchimento saturado (`bg-brand`, `bg-success`, `bg-danger`) usa `text-on-brand`, nunca `text-white`. O token é branco no tema claro e quase-preto (`#14100d`) no escuro — porque os tons vivos do modo escuro (`#ff5a3c`, `#3dbe85`, `#ff8a80`) reprovam em AA com texto branco (3,1:1 no caso do coral) e passam com folga com texto escuro (6,1:1 a 7,6:1).
 - Os primitivos em `src/components/ui/` ficam abaixo de ~80 linhas cada. Este limite vale **só** para eles: páginas e componentes de fluxo (`register-visit-flow.js`, `app-shell.js`) são legitimamente maiores, e o plano traz o código completo deles.
 - Arquivos com `useState`/`useEffect`/handlers levam `"use client"` na primeira linha; páginas que fazem `await` em dados são Server Components e não levam.
 
@@ -63,6 +64,7 @@ O `npm test` na raiz sobe o Next e o Jest juntos e **apaga os dados de desenvolv
   --accent: #ffb020;
   --success: #0e7c4a;
   --danger: #b3261e;
+  --on-brand: #ffffff;
 
   --cat-sorvete-bg: #ffe3dc;
   --cat-sorvete-fg: #9c2a16;
@@ -94,6 +96,7 @@ O `npm test` na raiz sobe o Next e o Jest juntos e **apaga os dados de desenvolv
     --accent: #ffc24d;
     --success: #3dbe85;
     --danger: #ff8a80;
+    --on-brand: #14100d;
 
     --cat-sorvete-bg: #3b211a;
     --cat-sorvete-fg: #ffb4a0;
@@ -125,6 +128,7 @@ O `npm test` na raiz sobe o Next e o Jest juntos e **apaga os dados de desenvolv
   --color-accent: var(--accent);
   --color-success: var(--success);
   --color-danger: var(--danger);
+  --color-on-brand: var(--on-brand);
 
   --color-cat-sorvete-bg: var(--cat-sorvete-bg);
   --color-cat-sorvete-fg: var(--cat-sorvete-fg);
@@ -447,7 +451,7 @@ git commit -m "Add phone, currency, and relative date formatters"
 
 **Interfaces:**
 - Produces:
-  - `<Button variant="primary"|"secondary"|"ghost" size="sm"|"md"|"lg" isLoading loadingLabel {...props} />`
+  - `<Button variant="primary"|"secondary"|"ghost" size="md"|"lg" isLoading loadingLabel {...props} />`
   - `<Card as="div" className="" >…</Card>`
   - `<Badge tone="brand"|"neutral"|"success">…</Badge>`
   - `<EmptyState icon title description action />`
@@ -456,13 +460,12 @@ git commit -m "Add phone, currency, and relative date formatters"
 
 ```jsx
 const VARIANTS = {
-  primary: "bg-brand text-white hover:bg-brand-hover shadow-card",
+  primary: "bg-brand text-on-brand hover:bg-brand-hover shadow-card",
   secondary: "bg-surface text-ink border border-line hover:bg-surface-2",
   ghost: "text-ink hover:bg-surface-2",
 };
 
 const SIZES = {
-  sm: "min-h-9 px-3 text-sm",
   md: "min-h-11 px-5 text-sm",
   lg: "min-h-13 px-6 text-base",
 };
@@ -779,7 +782,7 @@ export default function Chip({
       onClick={onToggle}
       className={`min-h-12 rounded-full px-4 text-sm font-semibold transition-colors ${
         selected
-          ? "bg-brand text-white"
+          ? "bg-brand text-on-brand"
           : "border border-line bg-surface text-muted hover:bg-surface-2"
       } ${className}`}
     >
@@ -848,7 +851,7 @@ export function ToastProvider({ children }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto w-full max-w-sm rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-card ${
+            className={`pointer-events-auto w-full max-w-sm rounded-lg px-4 py-3 text-sm font-semibold text-on-brand shadow-card ${
               toast.tone === "error" ? "bg-danger" : "bg-success"
             }`}
           >
@@ -1020,7 +1023,7 @@ export default function AppShell({ user, canManageUsers = false, children }) {
         <p className="mb-6 font-display text-xl font-extrabold text-brand">WeFood</p>
         <Link
           href="/visitas/nova"
-          className="mb-6 rounded-full bg-brand px-4 py-3 text-center text-sm font-bold text-white hover:bg-brand-hover"
+          className="mb-6 rounded-full bg-brand px-4 py-3 text-center text-sm font-bold text-on-brand hover:bg-brand-hover"
         >
           Registrar visita
         </Link>
@@ -1571,7 +1574,7 @@ export default async function Home() {
 
       <Link
         href="/visitas/nova"
-        className="flex flex-col gap-1 rounded-lg bg-brand p-6 text-white shadow-card transition-colors hover:bg-brand-hover"
+        className="flex flex-col gap-1 rounded-lg bg-brand p-6 text-on-brand shadow-card transition-colors hover:bg-brand-hover"
       >
         <span aria-hidden="true" className="text-3xl">
           ➕
@@ -1701,7 +1704,7 @@ export default async function ClientesPage({ searchParams }) {
         </div>
         <Link
           href="/clientes/novo"
-          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-hover"
+          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
         >
           Novo cliente
         </Link>
@@ -1721,7 +1724,7 @@ export default async function ClientesPage({ searchParams }) {
           action={
             <Link
               href="/clientes/novo"
-              className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-hover"
+              className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
             >
               Novo cliente
             </Link>
@@ -2031,7 +2034,7 @@ export default async function ClienteDetailPage({ params }) {
         </div>
         <Link
           href={`/visitas/nova?clientId=${foundClient.id}`}
-          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-hover"
+          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
         >
           Registrar visita
         </Link>
@@ -2795,7 +2798,7 @@ export default function NotFound() {
       <p className="text-sm text-muted">O endereço acessado não existe ou foi removido.</p>
       <Link
         href="/"
-        className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-hover"
+        className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
       >
         Voltar ao início
       </Link>
