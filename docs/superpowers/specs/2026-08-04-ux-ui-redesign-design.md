@@ -49,6 +49,7 @@ O ganho estrutural: hoje um cartão carrega `bg-white dark:bg-zinc-950 border-bl
 | `--color-accent` | `#FFB020` | `#FFC24D` | Destaques que levam texto escuro |
 | `--color-success` | `#0E7C4A` | `#3DBE85` | Confirmações |
 | `--color-danger` | `#B3261E` | `#FF8A80` | Erros |
+| `--color-on-brand` | `#FFFFFF` | `#14100D` | Texto sobre `brand`, `success` e `danger` |
 | `--color-bg` | `#FDF8F3` | `#14100D` | Fundo da página |
 | `--color-surface` | `#FFFFFF` | `#201A16` | Cartões, campos, barras |
 | `--color-surface-2` | `#FBF5EF` | `#251E19` | Cabeçalho de tabela, faixas |
@@ -58,10 +59,14 @@ O ganho estrutural: hoje um cartão carrega `bg-white dark:bg-zinc-950 border-bl
 
 Contrastes verificados (WCAG 2.1):
 
-- branco sobre `--color-brand` claro: **4,58:1** — passa AA para texto normal
+- `--color-on-brand` sobre `--color-brand` — claro **4,58:1**, escuro **6,05:1**
+- `--color-on-brand` sobre `--color-success` — claro **5,26:1**, escuro **7,39:1**
+- `--color-on-brand` sobre `--color-danger` — claro **6,54:1**, escuro **7,64:1**
 - `--color-ink` sobre `--color-bg`: **≈16,5:1**
 - `--color-muted` sobre `--color-bg`: **6,08:1**
 - `--color-ink` sobre `--color-accent`: **≈9,5:1**
+
+O token `--color-on-brand` existe por causa de um erro que a revisão da Task 3 pegou: a primeira versão deste spec usava `text-white` sobre os preenchimentos saturados, e eu só havia conferido o contraste do tema claro. No tema escuro os tons são vivos de propósito (`#FF5A3C`, `#3DBE85`, `#FF8A80`) e branco sobre eles reprova em AA — o coral fica em 3,1:1. Invertendo para texto quase-preto no escuro, os três passam com folga.
 
 `--color-brand-vivid` (`#FF5A3C`) rende apenas **3,1:1** contra branco e **não deve receber texto claro em tamanho nenhum** — fica abaixo até do mínimo de 3:1 exigido para texto grande. É tom decorativo: preenchimentos, ícones, barras. Onde precisar de rótulo sobre ele, o texto é `--color-ink`.
 

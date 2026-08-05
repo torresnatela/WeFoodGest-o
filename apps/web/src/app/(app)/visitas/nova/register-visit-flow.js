@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import ClientForm from "@/app/clientes/client-form";
+import ClientForm from "@/components/client-form";
 
 const CATEGORY_OPTIONS = [
   { value: "sorvete", label: "Sorvete" },

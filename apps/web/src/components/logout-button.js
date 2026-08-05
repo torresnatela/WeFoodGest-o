@@ -1,6 +1,6 @@
 "use client";
 
-export default function LogoutButton() {
+export default function LogoutButton({ className = "" }) {
   async function handleLogout() {
     await fetch("/api/v1/sessions", { method: "DELETE" });
     window.location.href = "/login";
@@ -8,8 +8,9 @@ export default function LogoutButton() {
 
   return (
     <button
+      type="button"
       onClick={handleLogout}
-      className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+      className={`text-sm font-medium text-muted hover:text-ink ${className}`}
     >
       Sair
     </button>
