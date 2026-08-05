@@ -2334,10 +2334,15 @@ export default function RegisterVisitFlow({ initialClient }) {
   const loadHistory = useCallback(async (clientId) => {
     try {
       const response = await fetch(`/api/v1/clients/${clientId}`);
-      if (!response.ok) {
+      const body = response.ok ? await response.json().catch(() => ({})) : {};
+
+      // Todo caminho precisa acabar com `history` preenchido. Deixar em `null`
+      // travaria o formulário no estado de carregando para sempre.
+      if (!body.visits) {
+        setHistory([]);
         return;
       }
-      const body = await response.json().catch(() => ({}));
+
       setHistory(body.visits);
 
       const firstVisit = body.visits[body.visits.length - 1];
@@ -2482,7 +2487,13 @@ export default function RegisterVisitFlow({ initialClient }) {
     );
   }
 
-  const isReturning = history !== null && history.length > 0;
+  // Enquanto o histórico não chega não dá para saber se o cliente é novo ou
+  // recorrente. Sem esta distinção, o formulário afirmaria "Primeira visita" e
+  // abriria os chips de origem para todo mundo, e depois recolheria tudo quando
+  // a resposta chegasse — piscando na tela mais usada da loja, e descartando em
+  // silêncio um chip que a atendente tivesse tocado nessa janela.
+  const isHistoryLoaded = history !== null;
+  const isReturning = isHistoryLoaded && history.length > 0;
   const showDiscoveryChips = !isReturning || isEditingDiscovery;
 
   return (
@@ -2490,9 +2501,11 @@ export default function RegisterVisitFlow({ initialClient }) {
       <div>
         <h1 className="text-xl font-extrabold text-ink">{foundClient.name}</h1>
         <p className="text-sm text-muted">
-          {isReturning
-            ? `${history.length + 1}ª visita · última ${formatRelativeDate(history[0].created_at)}`
-            : "Primeira visita"}
+          {!isHistoryLoaded
+            ? "Carregando histórico..."
+            : isReturning
+              ? `${history.length + 1}ª visita · última ${formatRelativeDate(history[0].created_at)}`
+              : "Primeira visita"}
         </p>
       </div>
 
@@ -2555,7 +2568,9 @@ export default function RegisterVisitFlow({ initialClient }) {
           De onde conheceu a loja
         </legend>
 
-        {showDiscoveryChips ? (
+        {!isHistoryLoaded ? (
+          <p className="text-sm text-muted">Carregando...</p>
+        ) : showDiscoveryChips ? (
           <>
             <div className="flex flex-wrap gap-2">
               {DISCOVERY_OPTIONS.map((option) => (
