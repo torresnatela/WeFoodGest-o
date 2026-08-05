@@ -1753,6 +1753,17 @@ import { useRouter } from "next/navigation";
 export default function ClientsSearch({ defaultValue = "" }) {
   const router = useRouter();
   const [term, setTerm] = useState(defaultValue);
+  const [urlTerm, setUrlTerm] = useState(defaultValue);
+
+  // Quando a URL muda por fora — o usuário clicou em "Clientes" na navegação,
+  // por exemplo — esta rota não remonta o componente, então o estado local
+  // sobreviveria com o termo antigo. Sem esta sincronização, o efeito abaixo
+  // veria a divergência e navegaria de volta para a busca anterior, desfazendo
+  // o clique do usuário 300ms depois, sem nenhum aviso.
+  if (defaultValue !== urlTerm) {
+    setUrlTerm(defaultValue);
+    setTerm(defaultValue);
+  }
 
   useEffect(() => {
     if (term === defaultValue) {
