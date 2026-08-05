@@ -1,11 +1,10 @@
 const VARIANTS = {
-  primary: "bg-brand text-white hover:bg-brand-hover shadow-card",
+  primary: "bg-brand text-on-brand hover:bg-brand-hover shadow-card",
   secondary: "bg-surface text-ink border border-line hover:bg-surface-2",
   ghost: "text-ink hover:bg-surface-2",
 };
 
 const SIZES = {
-  sm: "min-h-9 px-3 text-sm",
   md: "min-h-11 px-5 text-sm",
   lg: "min-h-13 px-6 text-base",
 };

@@ -15,6 +15,7 @@
   --accent: #ffb020;
   --success: #0e7c4a;
   --danger: #b3261e;
+  --on-brand: #ffffff;
 
   --cat-sorvete-bg: #ffe3dc;
   --cat-sorvete-fg: #9c2a16;
@@ -46,6 +47,7 @@
     --accent: #ffc24d;
     --success: #3dbe85;
     --danger: #ff8a80;
+    --on-brand: #14100d;
 
     --cat-sorvete-bg: #3b211a;
     --cat-sorvete-fg: #ffb4a0;
@@ -77,6 +79,7 @@
   --color-accent: var(--accent);
   --color-success: var(--success);
   --color-danger: var(--danger);
+  --color-on-brand: var(--on-brand);
 
   --color-cat-sorvete-bg: var(--cat-sorvete-bg);
   --color-cat-sorvete-fg: var(--cat-sorvete-fg);
