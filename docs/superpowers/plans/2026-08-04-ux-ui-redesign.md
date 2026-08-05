@@ -22,6 +22,7 @@
 - Texto sobre preenchimento saturado (`bg-brand`, `bg-success`, `bg-danger`) usa `text-on-brand`, nunca `text-white`. O token é branco no tema claro e quase-preto (`#14100d`) no escuro — porque os tons vivos do modo escuro (`#ff5a3c`, `#3dbe85`, `#ff8a80`) reprovam em AA com texto branco (3,1:1 no caso do coral) e passam com folga com texto escuro (6,1:1 a 7,6:1).
 - Os primitivos em `src/components/ui/` ficam abaixo de ~80 linhas cada. Este limite vale **só** para eles: páginas e componentes de fluxo (`register-visit-flow.js`, `app-shell.js`) são legitimamente maiores, e o plano traz o código completo deles.
 - Arquivos com `useState`/`useEffect`/handlers levam `"use client"` na primeira linha; páginas que fazem `await` em dados são Server Components e não levam.
+- Toda leitura de corpo de resposta com erro usa `await response.json().catch(() => ({}))`. Sem isso, uma resposta de erro cujo corpo não seja JSON — um 500 vindo de qualquer exceção não tratada num Route Handler, por exemplo — lança um `SyntaxError` que escapa do handler, e o usuário fica sem mensagem nenhuma. O `?? "mensagem padrão"` que já existe em cada formulário só funciona se o parse não explodir antes.
 
 ## Como rodar os testes
 
@@ -1565,7 +1566,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível entrar.");
       return;
     }
@@ -1983,7 +1984,7 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
     }
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível cadastrar o cliente.");
 
       const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
@@ -2316,7 +2317,7 @@ export default function RegisterVisitFlow({ initialClient }) {
       if (!response.ok) {
         return;
       }
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setHistory(body.visits);
 
       const firstVisit = body.visits[body.visits.length - 1];
@@ -2350,9 +2351,9 @@ export default function RegisterVisitFlow({ initialClient }) {
     }
 
     setIsSearching(false);
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
+    if (!response.ok || !body.clients) {
       setSearchError(body.message ?? "Não foi possível buscar o cliente.");
       return;
     }
@@ -2415,7 +2416,7 @@ export default function RegisterVisitFlow({ initialClient }) {
     setIsSubmittingVisit(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setVisitError(body.message ?? "Não foi possível registrar a visita.");
       return;
     }
@@ -2712,7 +2713,7 @@ export default function NewUserForm() {
       if (!response.ok) {
         return;
       }
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setRoles(body.roles);
       if (body.roles.length > 0) {
         setRole(body.roles.find((r) => r.key === "colaborador")?.key ?? body.roles[0].key);
@@ -2743,7 +2744,7 @@ export default function NewUserForm() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível cadastrar o colaborador.");
       return;
     }
@@ -3032,7 +3033,7 @@ export default function AcceptInviteForm({ token, name, roleName }) {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível concluir o cadastro.");
       return;
     }
@@ -3267,7 +3268,7 @@ export default function ReviewForm() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível enviar sua avaliação.");
       return;
     }
