@@ -3,18 +3,19 @@
 // re-read it in the process timezone and shift every label.
 function bucketLabel(bucket, granularity) {
   const [date, time] = bucket.split("T");
-  const [year, month, day] = date.split("-");
+  const [, month, day] = date.split("-");
 
   if (granularity === "hour") {
     return `${time.slice(0, 2)}h`;
   }
 
+  // Só o início da semana. O Postgres trunca o bucket para a segunda-feira,
+  // mas o período começa e termina no meio da semana — a primeira e a última
+  // barra guardam um ou dois dias, não sete. Escrever "03/08 – 09/08" nelas
+  // anunciava uma semana inteira e fazia a última barra parecer uma queda no
+  // movimento toda vez. "semana de 03/08" é verdade nos dois casos.
   if (granularity === "week") {
-    const end = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + 6));
-    const endDay = String(end.getUTCDate()).padStart(2, "0");
-    const endMonth = String(end.getUTCMonth() + 1).padStart(2, "0");
-
-    return `${day}/${month} – ${endDay}/${endMonth}`;
+    return `semana de ${day}/${month}`;
   }
 
   return `${day}/${month}`;

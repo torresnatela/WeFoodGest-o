@@ -15,8 +15,8 @@ export default function PeriodFilter({ activeKey }) {
             aria-current={isActive ? "page" : undefined}
             className={
               isActive
-                ? "rounded-pill bg-brand px-4 py-2 text-sm font-medium text-on-brand"
-                : "rounded-pill border border-line bg-surface px-4 py-2 text-sm font-medium text-ink"
+                ? "rounded-full bg-brand px-4 py-2 text-sm font-medium text-on-brand"
+                : "rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-ink"
             }
           >
             {period.label}

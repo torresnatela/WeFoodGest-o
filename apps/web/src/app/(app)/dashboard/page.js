@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import requireAuthenticatedUser from "@/app/require-auth";
 import authorization from "@/models/authorization";
 import dashboard from "@/models/dashboard";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPhone } from "@/lib/format";
 import {
   CATEGORY_LABELS,
   REASON_LABELS,
   DISCOVERY_LABELS,
-  CATEGORY_CHIP_CLASSES,
+  CATEGORY_BAR_CLASSES,
 } from "@/lib/visit-options";
+import EmptyState from "@/components/ui/empty-state";
 import StatCard from "./stat-card";
 import BarList from "./bar-list";
 import TimelineChart from "./timeline-chart";
@@ -95,7 +96,9 @@ export default async function DashboardPage({ searchParams }) {
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold text-ink">O que pediram</h2>
         <p className="text-sm text-muted">
-          Uma visita pode ter mais de uma categoria, então as porcentagens somam mais de 100%.
+          Uma visita pode ter mais de uma categoria, então as porcentagens somam mais de 100%. Pelo
+          mesmo motivo o ticket mostrado é o da visita inteira que levou a categoria, e não o preço
+          da categoria: não sabemos quanto de cada conta foi para cada item.
         </p>
         <BarList
           items={overview.categories.map((row) => ({
@@ -103,8 +106,8 @@ export default async function DashboardPage({ searchParams }) {
             label: CATEGORY_LABELS[row.value] ?? row.value,
             value: row.visits,
             percentage: row.percentage,
-            note: `ticket ${formatCurrency(row.averageTicket)}`,
-            className: CATEGORY_CHIP_CLASSES[row.value],
+            note: `ticket da visita ${formatCurrency(row.averageTicket)}`,
+            className: CATEGORY_BAR_CLASSES[row.value],
           }))}
         />
       </section>
@@ -120,12 +123,19 @@ export default async function DashboardPage({ searchParams }) {
         </div>
 
         <h3 className="mt-4 font-display text-base font-bold text-ink">Quem mais gastou</h3>
+        {/*
+          A lista vem ordenada por total gasto, então a barra tem de medir
+          dinheiro. Medindo visitas, o primeiro colocado ganhava a barra mais
+          curta da lista.
+        */}
         <BarList
           items={overview.topClients.map((row) => ({
             key: row.id,
+            href: `/clientes/${row.id}`,
             label: row.name,
-            value: row.visits,
-            note: formatCurrency(row.revenue),
+            value: row.revenue,
+            valueLabel: formatCurrency(row.revenue),
+            note: `${row.visits} ${row.visits === 1 ? "visita" : "visitas"}`,
           }))}
         />
 
@@ -133,9 +143,11 @@ export default async function DashboardPage({ searchParams }) {
         <BarList
           items={overview.neighborhoods.map((row) => ({
             key: `${row.neighborhood ?? "sem-bairro"}-${row.city ?? "sem-cidade"}`,
+            // Sem bairro mas com cidade a linha ainda diz algo; cair direto em
+            // "Não informado" fundia cidades diferentes na mesma linha.
             label: row.neighborhood
               ? `${row.neighborhood}${row.city ? ` — ${row.city}` : ""}`
-              : "Não informado",
+              : (row.city ?? "Não informado"),
             value: row.visits,
           }))}
         />
@@ -153,18 +165,18 @@ export default async function DashboardPage({ searchParams }) {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold text-ink">
-          Aniversariantes de {MONTH_NAMES[dashboard.currentMonth() - 1]}
+          Aniversariantes de {MONTH_NAMES[overview.month - 1]}
         </h2>
         <p className="text-sm text-muted">Esta seção não muda com o filtro de período.</p>
         {overview.birthdays.length === 0 ? (
-          <p className="text-sm text-muted">Nenhum aniversariante este mês.</p>
+          <EmptyState title="Nenhum aniversariante este mês" icon="🎂" />
         ) : (
           <ul className="flex flex-col gap-2">
             {overview.birthdays.map((birthday) => (
               <li key={birthday.id} className="flex justify-between gap-4 text-sm text-ink">
                 <span>{birthday.name}</span>
                 <span className="text-muted">
-                  dia {birthday.day} · {birthday.phone}
+                  dia {birthday.day} · {formatPhone(birthday.phone)}
                 </span>
               </li>
             ))}

@@ -9,11 +9,18 @@ describe("bucketLabel()", () => {
     expect(bucketLabel("2026-07-10T00:00:00", "day")).toBe("10/07");
   });
 
-  test("formats a weekly bucket as the week's range", () => {
-    expect(bucketLabel("2026-07-06T00:00:00", "week")).toBe("06/07 – 12/07");
+  // O bucket semanal é rotulado só pelo início: o Postgres trunca para a
+  // segunda-feira, mas o período começa e termina no meio da semana, então a
+  // primeira e a última barra não guardam sete dias.
+  test("formats a weekly bucket by the week's start", () => {
+    expect(bucketLabel("2026-07-06T00:00:00", "week")).toBe("semana de 06/07");
   });
 
-  test("crosses the month boundary correctly on a weekly bucket", () => {
-    expect(bucketLabel("2026-07-27T00:00:00", "week")).toBe("27/07 – 02/08");
+  test("labels a week that spills into the next month by its start", () => {
+    expect(bucketLabel("2026-07-27T00:00:00", "week")).toBe("semana de 27/07");
+  });
+
+  test("labels a week that crosses the year boundary by its start", () => {
+    expect(bucketLabel("2025-12-27T00:00:00", "week")).toBe("semana de 27/12");
   });
 });

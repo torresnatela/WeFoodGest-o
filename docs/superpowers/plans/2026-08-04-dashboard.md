@@ -2033,7 +2033,7 @@ EOF
 - Consumes: `Card` and `EmptyState` from `@/components/ui`, `formatCurrency` from `@/lib`, `bucketLabel` from Task 10, `PERIODS` from `@/models/dashboard`.
 - Produces:
   - `<StatCard label value />`
-  - `<BarList items />` where `items` is `[{ key, label, value, percentage, note, color }]`
+  - `<BarList items />` where `items` is `[{ key, label, value, percentage, note, valueLabel, className, href }]` — `className` (not `color`) is the Tailwind class for the bar fill; `valueLabel` overrides the numeric readout when the quantity is money rather than a count; `href` renders the label as a `next/link` (used only by "Quem mais gastou", which links to `/clientes/[id]`)
   - `<TimelineChart points granularity />` where `points` is the `timeline()` output
   - `<PeriodFilter activeKey />`
 

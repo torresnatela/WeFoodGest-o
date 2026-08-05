@@ -41,3 +41,15 @@ export const CATEGORY_CHIP_CLASSES = {
   sobremesa: "bg-cat-sobremesa-bg text-cat-sobremesa-fg",
   outro: "bg-cat-outro-bg text-cat-outro-fg",
 };
+
+// Preenchimento de barra/gráfico. Usa a metade saturada (-fg) do par: o tom
+// claro (-bg) do chip fica em 1,1:1 contra a trilha bg-surface-2 e a barra
+// some. Strings literais pelo mesmo motivo do mapa acima.
+export const CATEGORY_BAR_CLASSES = {
+  sorvete: "bg-cat-sorvete-fg",
+  milkshake: "bg-cat-milkshake-fg",
+  lanche: "bg-cat-lanche-fg",
+  bebida: "bg-cat-bebida-fg",
+  sobremesa: "bg-cat-sobremesa-fg",
+  outro: "bg-cat-outro-fg",
+};

@@ -53,6 +53,16 @@ describe("dashboard.getOverview()", () => {
     expect(Array.isArray(overview.birthdays)).toBe(true);
   });
 
+  // A página escreve "Aniversariantes de <mês>" a partir daqui, em vez de
+  // chamar currentMonth() de novo por fora.
+  test("reports the month it used for the birthdays", async () => {
+    const overview = await dashboard.getOverview(RANGE);
+
+    expect(overview.month).toBe(dashboard.currentMonth());
+    expect(overview.month).toBeGreaterThanOrEqual(1);
+    expect(overview.month).toBeLessThanOrEqual(12);
+  });
+
   test("re-exports the period helpers so consumers need only one require", async () => {
     expect(dashboard.PERIODS.map((period) => period.key)).toEqual(["hoje", "7d", "30d", "90d"]);
     expect(typeof dashboard.resolveRange).toBe("function");

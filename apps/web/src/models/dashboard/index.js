@@ -6,6 +6,9 @@ const clients = require("./clients");
 
 async function getOverview({ from, to, granularity }) {
   const range = { from, to };
+  // Devolvido junto com o resto para a página não recalcular o mês só para
+  // escrever o título dos aniversariantes.
+  const month = period.currentMonth();
 
   const [
     summary,
@@ -28,10 +31,11 @@ async function getOverview({ from, to, granularity }) {
     clients.topClients(range),
     clients.byNeighborhood(range),
     clients.byCollaborator(range),
-    clients.birthdaysOfMonth(period.currentMonth()),
+    clients.birthdaysOfMonth(month),
   ]);
 
   return {
+    month,
     summary,
     timeline,
     discoverySources,

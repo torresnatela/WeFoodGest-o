@@ -52,7 +52,22 @@ describe("dashboard.summary()", () => {
   });
 
   test("returns numbers, not the strings pg gives back for numeric and bigint", async () => {
+    // Semeia a própria visita: sem nenhuma linha no período o COALESCE devolve
+    // zeros e o teste passaria sem nunca ver o numeric/bigint que o pg entrega
+    // como string. As asserções de > 0 abaixo garantem que veio dado do banco.
+    const typed = await client.create({ name: "Resumo Tipos", phone: "11900000009" });
+
+    await orchestrator.createVisitAt({
+      ...visitInput(typed.id, { amountSpent: 25 }),
+      createdAt: new Date("2026-07-13T15:00:00Z"),
+    });
+
     const result = await movement.summary({ from: FROM, to: TO });
+
+    expect(result.visits).toBeGreaterThan(0);
+    expect(result.revenue).toBeGreaterThan(0);
+    expect(result.averageTicket).toBeGreaterThan(0);
+    expect(result.clientsServed).toBeGreaterThan(0);
 
     expect(typeof result.visits).toBe("number");
     expect(typeof result.revenue).toBe("number");
