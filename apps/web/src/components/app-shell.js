@@ -30,8 +30,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
             <NavLink
               key={item.href}
               href={item.href}
-              className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
-              activeClassName="bg-brand-tint text-brand"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-surface-2"
+              activeClassName="bg-brand-tint font-bold text-brand"
+              inactiveClassName="font-medium text-muted hover:text-ink"
             >
               <span aria-hidden="true" className="mr-2">
                 {item.icon}
@@ -61,8 +62,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
           <NavLink
             key={item.href}
             href={item.href}
-            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted"
-            activeClassName="text-brand"
+            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs"
+            activeClassName="font-bold text-brand"
+            inactiveClassName="font-medium text-muted"
           >
             <span aria-hidden="true" className="text-lg">
               {item.icon}
