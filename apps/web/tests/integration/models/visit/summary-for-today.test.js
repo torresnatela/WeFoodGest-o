@@ -64,4 +64,63 @@ describe("visit.summaryForToday()", () => {
     expect(summary.count).toBe(2);
     expect(summary.total).toBe(15);
   });
+
+  test("exclui uma visita de um segundo antes da meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Fronteira", phone: "11944441003" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 77,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+          - interval '1 second'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(2);
+    expect(summary.total).toBe(15);
+  });
+
+  test("inclui uma visita exatamente na meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Meia-noite", phone: "11944441004" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 33,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(3);
+    expect(summary.total).toBe(48);
+  });
 });
