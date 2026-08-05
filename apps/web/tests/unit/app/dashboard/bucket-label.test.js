@@ -1,4 +1,4 @@
-const bucketLabel = require("@/app/dashboard/bucket-label");
+const bucketLabel = require("@/app/(app)/dashboard/bucket-label");
 
 describe("bucketLabel()", () => {
   test("formats an hourly bucket", () => {
