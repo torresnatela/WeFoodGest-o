@@ -1399,10 +1399,73 @@ describe("visit.summaryForToday()", () => {
     expect(summary.count).toBe(2);
     expect(summary.total).toBe(15);
   });
+
+  test("exclui uma visita de um segundo antes da meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Fronteira", phone: "11944441003" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 77,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+          - interval '1 second'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(2);
+    expect(summary.total).toBe(15);
+  });
+
+  test("inclui uma visita exatamente na meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Meia-noite", phone: "11944441004" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 33,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(3);
+    expect(summary.total).toBe(48);
+  });
 });
 ```
 
 Os números do terceiro teste são os do segundo de propósito: os testes rodam em sequência no mesmo banco, e a visita de 99 empurrada para dois dias atrás não pode alterar o resultado.
+
+**Os dois últimos testes são os que de fato cobrem o fuso, e existem porque o terceiro não cobre.** Recuar 48 horas passa por qualquer fronteira de dia, em qualquer fuso — o terceiro teste continuaria verde se a query usasse `date_trunc('day', now())` em UTC puro, sem conversão nenhuma. Já um instante colocado um segundo antes da meia-noite de São Paulo cai às 02:59:59 UTC: a implementação correta o exclui, e uma implementação em UTC o incluiria. É a diferença de três horas que dá o poder de discriminação.
+
+Uma limitação honesta: entre 00:00 e 03:00 UTC (21:00 às 00:00 em São Paulo) esses dois instantes caem do mesmo lado das duas fronteiras, e o teste passa sem discriminar. Ele nunca falha com o código correto — só perde o poder de detecção nessa janela de três horas.
 
 - [ ] **Step 2: Rodar e confirmar que falha**
 
