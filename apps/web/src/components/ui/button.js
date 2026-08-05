@@ -10,8 +10,10 @@ const SIZES = {
 };
 
 export default function Button({
+  as: Tag = "button",
   variant = "primary",
   size = "md",
+  type = "button",
   isLoading = false,
   loadingLabel = "Aguarde...",
   className = "",
@@ -19,14 +21,18 @@ export default function Button({
   disabled,
   ...props
 }) {
+  // `type` e `disabled` só existem em <button>. Emiti-los num <a> renderizado
+  // por `as={Link}` produziria atributos inválidos no HTML.
+  const buttonOnlyProps = Tag === "button" ? { type, disabled: disabled || isLoading } : {};
+
   return (
-    <button
+    <Tag
       {...props}
-      disabled={disabled || isLoading}
+      {...buttonOnlyProps}
       aria-busy={isLoading || undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
     >
       {isLoading ? loadingLabel : children}
-    </button>
+    </Tag>
   );
 }

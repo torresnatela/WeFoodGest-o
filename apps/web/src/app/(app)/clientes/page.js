@@ -3,6 +3,7 @@ import Link from "next/link";
 import requireAuthenticatedUser from "../../require-auth";
 import client from "@/models/client";
 import Badge from "@/components/ui/badge";
+import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { formatPhone, formatRelativeDate } from "@/lib/format";
@@ -23,12 +24,9 @@ export default async function ClientesPage({ searchParams }) {
             {clients.length} {clients.length === 1 ? "cliente" : "clientes"}
           </p>
         </div>
-        <Link
-          href="/clientes/novo"
-          className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
-        >
+        <Button as={Link} href="/clientes/novo">
           Novo cliente
-        </Link>
+        </Button>
       </div>
 
       <ClientsSearch defaultValue={search ?? ""} />
@@ -43,12 +41,9 @@ export default async function ClientesPage({ searchParams }) {
               : "Cadastre o primeiro cliente para começar a registrar visitas."
           }
           action={
-            <Link
-              href="/clientes/novo"
-              className="min-h-11 rounded-full bg-brand px-5 py-3 text-sm font-bold text-on-brand hover:bg-brand-hover"
-            >
+            <Button as={Link} href="/clientes/novo">
               Novo cliente
-            </Link>
+            </Button>
           }
         />
       ) : (
