@@ -4,10 +4,16 @@ const { toNumber, percentageOf } = require("./numbers");
 async function byCategory({ from, to }) {
   const result = await database.query({
     text: `
+      -- Só visitas com compra entram na CTE. O JOIN abaixo não muda com isso
+      -- (visita sem compra não tem item), mas o denominador dos percentuais
+      -- sim: contando todas, cada categoria teria a fatia diluída por gente que
+      -- nunca poderia ter pedido nada, e a nota de rodapé da tela sobre as
+      -- porcentagens somarem mais de 100% deixaria de fazer sentido.
       WITH period_visits AS (
         SELECT id, amount_spent
         FROM visits
         WHERE created_at >= $1 AND created_at <= $2
+          AND purchased
       )
       SELECT
         voi.category AS value,

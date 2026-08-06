@@ -64,7 +64,51 @@ export default async function DashboardPage({ searchParams }) {
         <StatCard label="Visitas" value={overview.summary.visits} />
         <StatCard label="Faturamento" value={formatCurrency(overview.summary.revenue)} />
         <StatCard label="Ticket médio" value={formatCurrency(overview.summary.averageTicket)} />
-        <StatCard label="Clientes atendidos" value={overview.summary.clientsServed} />
+        {/*
+          O número é COUNT(DISTINCT client_id), que sempre ignorou nulos. Com
+          visitas anônimas na base ele passaria a mostrar menos gente do que a
+          loja de fato atendeu — o rótulo muda para dizer a verdade sobre si
+          mesmo; a conta continua a mesma.
+        */}
+        <StatCard label="Clientes identificados" value={overview.summary.clientsServed} />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-lg font-bold text-ink">Funil de visitas</h2>
+        <p className="text-sm text-muted">
+          Todas as etapas são medidas sobre o total de visitas do período. Alguém pode ver os
+          produtos pela vitrine sem entrar, então as linhas não caem necessariamente uma da outra.
+        </p>
+        <BarList
+          items={[
+            { key: "visitas", label: "Passaram", value: overview.funnel.visits, percentage: 100 },
+            {
+              key: "entraram",
+              label: "Entraram na loja",
+              value: overview.funnel.entered,
+              percentage: overview.funnel.enteredRate,
+            },
+            {
+              key: "viram",
+              label: "Viram os produtos",
+              value: overview.funnel.sawProducts,
+              percentage: overview.funnel.sawRate,
+            },
+            {
+              key: "compraram",
+              label: "Compraram",
+              value: overview.funnel.purchased,
+              percentage: overview.funnel.conversionRate,
+            },
+          ]}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <StatCard label="Taxa de conversão" value={`${overview.funnel.conversionRate}%`} />
+          <StatCard
+            label="Entraram e não compraram"
+            value={overview.funnel.entered - overview.funnel.purchased}
+          />
+        </div>
       </section>
 
       {/*
@@ -82,13 +126,20 @@ export default async function DashboardPage({ searchParams }) {
         <TimelineChart points={overview.timeline} granularity={range.granularity} />
       </section>
 
+      {/*
+        Motivo e origem são opcionais: quem passou em frente não foi perguntado
+        e quem entrou pode não ter respondido. As duas listas contam só quem
+        respondeu, e as porcentagens são sobre esse grupo — daí o subtítulo.
+      */}
       <section className="flex flex-col gap-6 lg:flex-row lg:gap-8">
         <div className="flex flex-1 flex-col gap-3">
           <h2 className="font-display text-lg font-bold text-ink">De onde conheceram a loja</h2>
+          <p className="text-sm text-muted">Entre as visitas que responderam.</p>
           <BarList items={labelledItems(overview.discoverySources, DISCOVERY_LABELS)} />
         </div>
         <div className="flex flex-1 flex-col gap-3">
           <h2 className="font-display text-lg font-bold text-ink">Por que vieram</h2>
+          <p className="text-sm text-muted">Entre as visitas que responderam.</p>
           <BarList items={labelledItems(overview.reasons, REASON_LABELS)} />
         </div>
       </section>

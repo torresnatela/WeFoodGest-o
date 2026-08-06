@@ -69,3 +69,32 @@ describe("dashboard.byReason()", () => {
     ]);
   });
 });
+
+describe("visitas que não responderam", () => {
+  test("ficam fora da lista e fora do denominador", async () => {
+    // Quem passou em frente e não entrou não tem motivo nem origem. Se essa
+    // visita entrasse na conta, as fatias de quem respondeu cairiam de 75/25
+    // para 60/20 sem que ninguém tivesse mudado de resposta.
+    await orchestrator.createVisitAt({
+      registeredBy: null,
+      enteredStore: false,
+      sawProducts: false,
+      purchased: false,
+      amountSpent: 0,
+      orderCategories: [],
+      createdAt: new Date("2026-07-20T15:00:00Z"),
+    });
+
+    const sources = await marketing.byDiscoverySource({ from: FROM, to: TO });
+    const reasons = await marketing.byReason({ from: FROM, to: TO });
+
+    expect(sources).toEqual([
+      { value: "instagram", visits: 3, percentage: 75 },
+      { value: "indicacao", visits: 1, percentage: 25 },
+    ]);
+    expect(reasons).toEqual([
+      { value: "comemoracao", visits: 3, percentage: 75 },
+      { value: "outro", visits: 1, percentage: 25 },
+    ]);
+  });
+});

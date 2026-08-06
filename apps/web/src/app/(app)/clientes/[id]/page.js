@@ -16,6 +16,22 @@ import {
   REASON_LABELS,
 } from "@/lib/visit-options";
 
+// Uma visita com compra é a que o card já sabia mostrar (categorias e valor).
+// As outras precisam dizer em que ponto do funil pararam, senão aparecem como
+// uma visita normal de R$ 0,00 sem nenhum pedido.
+function funnelLabel(currentVisit) {
+  if (!currentVisit.entered_store) {
+    return "Não entrou";
+  }
+  if (!currentVisit.saw_products) {
+    return "Entrou, não viu os produtos";
+  }
+  if (!currentVisit.purchased) {
+    return "Não comprou";
+  }
+  return null;
+}
+
 export default async function ClienteDetailPage({ params }) {
   await requireAuthenticatedUser();
 
@@ -74,9 +90,13 @@ export default async function ClienteDetailPage({ params }) {
                     })}
                   </span>
                 </p>
-                <p className="text-lg font-extrabold text-ink">
-                  {formatCurrency(currentVisit.amount_spent)}
-                </p>
+                {currentVisit.purchased ? (
+                  <p className="text-lg font-extrabold text-ink">
+                    {formatCurrency(currentVisit.amount_spent)}
+                  </p>
+                ) : (
+                  <Badge tone="neutral">{funnelLabel(currentVisit)}</Badge>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">
@@ -98,14 +118,14 @@ export default async function ClienteDetailPage({ params }) {
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-muted">Motivo</dt>
                   <dd className="text-ink">
-                    {REASON_LABELS[currentVisit.reason]}
+                    {REASON_LABELS[currentVisit.reason] ?? "Não informado"}
                     {currentVisit.reason_details ? ` — ${currentVisit.reason_details}` : ""}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-muted">Origem</dt>
                   <dd className="text-ink">
-                    {DISCOVERY_LABELS[currentVisit.discovery_source]}
+                    {DISCOVERY_LABELS[currentVisit.discovery_source] ?? "Não informado"}
                     {currentVisit.discovery_details ? ` — ${currentVisit.discovery_details}` : ""}
                   </dd>
                 </div>

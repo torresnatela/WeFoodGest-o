@@ -2,7 +2,6 @@ const orchestrator = require("../../../../orchestrator");
 const authentication = require("@/models/authentication");
 const session = require("@/models/session");
 const client = require("@/models/client");
-const visit = require("@/models/visit");
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -19,7 +18,7 @@ describe("GET /api/v1/clients/[id]", () => {
   test("returns the client and its visit history", async () => {
     const adminSession = await createAdminSession();
     const createdClient = await client.create({ name: "Cliente Detalhe", phone: "11966660001" });
-    await visit.create({
+    await orchestrator.createVisit({
       clientId: createdClient.id,
       registeredBy: null,
       amountSpent: 15,

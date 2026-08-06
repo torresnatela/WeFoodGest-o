@@ -100,6 +100,26 @@ describe("dashboard.summary()", () => {
     expect(result.revenue).toBe(3);
   });
 
+  test("conta a visita sem compra no movimento, mas fora do ticket médio", async () => {
+    // O estado herdado do teste da fronteira: duas visitas no período, de 1 e
+    // 2 reais, ambas com compra.
+    await orchestrator.createVisitAt({
+      registeredBy: null,
+      enteredStore: true,
+      sawProducts: true,
+      purchased: false,
+      amountSpent: 0,
+      orderCategories: [],
+      createdAt: new Date("2026-07-15T15:00:00Z"),
+    });
+
+    const result = await movement.summary({ from: FROM, to: TO });
+
+    expect(result.visits).toBe(3);
+    expect(result.revenue).toBe(3);
+    expect(result.averageTicket).toBe(1.5);
+  });
+
   test("returns zeros for a period with no visits, without dividing by zero", async () => {
     const result = await movement.summary({
       from: new Date("2020-01-01T00:00:00Z"),

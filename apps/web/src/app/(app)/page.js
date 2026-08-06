@@ -36,10 +36,20 @@ export default async function Home() {
         <h1 className="text-2xl font-extrabold text-ink">{authenticatedUser.name}</h1>
       </div>
 
+      {/*
+        "Visitas hoje" conta todo mundo que foi registrado, inclusive quem só
+        passou em frente. "Entraram" fica ao lado para o primeiro número não
+        mudar de significado sem avisar depois que a visita deixou de exigir
+        uma compra.
+      */}
       <Card className="flex divide-x divide-line">
         <div className="flex-1 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Visitas hoje</p>
           <p className="text-2xl font-extrabold text-ink">{summary.count}</p>
+        </div>
+        <div className="flex-1 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Entraram</p>
+          <p className="text-2xl font-extrabold text-ink">{summary.entered}</p>
         </div>
         <div className="flex-1 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Faturamento</p>
@@ -55,7 +65,7 @@ export default async function Home() {
           ➕
         </span>
         <span className="text-lg font-extrabold">Registrar visita</span>
-        <span className="text-sm opacity-90">Buscar o cliente pelo telefone</span>
+        <span className="text-sm opacity-90">Entrou? Viu os produtos? Comprou?</span>
       </Link>
 
       <div className="grid grid-cols-2 gap-3">

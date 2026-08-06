@@ -5,21 +5,53 @@ const FOREIGN_KEY_VIOLATION = "23503";
 const CHECK_VIOLATION = "23514";
 const INVALID_TEXT_REPRESENTATION = "22P02";
 
+// O funil é o único obrigatório porque é a única coisa que o atendente sempre
+// sabe: ele viu a pessoa. Cliente, motivo, origem e pedido dependem de a pessoa
+// querer responder, então todos são opcionais e todos têm default aqui.
 async function create({
-  clientId,
+  clientId = null,
   registeredBy,
-  amountSpent,
-  orderCategories,
+  enteredStore,
+  sawProducts,
+  purchased,
+  amountSpent = 0,
+  orderCategories = [],
   orderDetails,
-  reason,
+  reason = null,
   reasonDetails,
-  discoverySource,
+  discoverySource = null,
   discoveryDetails,
 }) {
-  if (!orderCategories || orderCategories.length === 0) {
+  if ([enteredStore, sawProducts, purchased].some((answer) => typeof answer !== "boolean")) {
     throw new ValidationError({
-      message: "Selecione ao menos uma categoria do pedido.",
-      action: "Escolha uma ou mais categorias do que o cliente pediu.",
+      message: "Responda se o cliente entrou, viu os produtos e comprou.",
+      action: "As três respostas do funil são obrigatórias em toda visita.",
+    });
+  }
+
+  if (purchased && !sawProducts) {
+    throw new ValidationError({
+      message: "Quem comprou necessariamente viu os produtos.",
+      action: "Marque que o cliente viu os produtos ou desmarque a compra.",
+    });
+  }
+
+  // As duas regras abaixo têm um CHECK equivalente no banco (itens via a
+  // ausência de linhas, valor via visits_amount_requires_purchase_check).
+  // Existem aqui em duplicata para dar a mensagem específica: zerar em silêncio
+  // esconderia um erro do chamador numa fronteira de API, e deixar o Postgres
+  // reclamar devolveria a mensagem genérica de check violation.
+  if (!purchased && orderCategories.length > 0) {
+    throw new ValidationError({
+      message: "Uma visita sem compra não pode ter itens no pedido.",
+      action: "Remova as categorias do pedido ou marque que houve compra.",
+    });
+  }
+
+  if (!purchased && amountSpent > 0) {
+    throw new ValidationError({
+      message: "Uma visita sem compra não pode ter valor gasto.",
+      action: "Zere o valor gasto ou marque que houve compra.",
     });
   }
 
@@ -31,17 +63,22 @@ async function create({
     const visitResult = await dbClient.query({
       text: `
         INSERT INTO visits (
-          client_id, registered_by, amount_spent, order_details,
+          client_id, registered_by, entered_store, saw_products, purchased,
+          amount_spent, order_details,
           reason, reason_details, discovery_source, discovery_details
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, client_id, registered_by, amount_spent, order_details,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id, client_id, registered_by, entered_store, saw_products, purchased,
+          amount_spent, order_details,
           reason, reason_details, discovery_source, discovery_details,
           created_at, updated_at;
       `,
       values: [
         clientId,
         registeredBy,
+        enteredStore,
+        sawProducts,
+        purchased,
         amountSpent,
         orderDetails ?? null,
         reason,
@@ -93,7 +130,9 @@ async function findByClientId(clientId) {
   const result = await database.query({
     text: `
       SELECT
-        v.id, v.client_id, v.registered_by, v.amount_spent, v.order_details,
+        v.id, v.client_id, v.registered_by,
+        v.entered_store, v.saw_products, v.purchased,
+        v.amount_spent, v.order_details,
         v.reason, v.reason_details, v.discovery_source, v.discovery_details,
         v.created_at, v.updated_at,
         COALESCE(
@@ -117,6 +156,7 @@ async function summaryForToday() {
     text: `
       SELECT
         COUNT(*)::int AS count,
+        COUNT(*) FILTER (WHERE entered_store)::int AS entered,
         COALESCE(SUM(amount_spent), 0)::float AS total
       FROM visits
       WHERE created_at >= date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')

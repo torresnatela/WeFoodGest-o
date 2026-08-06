@@ -51,6 +51,28 @@ describe("dashboard.byCategory()", () => {
     expect(total).toBeGreaterThan(100);
   });
 
+  test("usa só as visitas com compra como denominador", async () => {
+    // Sem esta regra a visita abaixo entraria no total e diluiria as duas
+    // categorias (sorvete cairia de 100% para 66,7%) sem que ninguém tivesse
+    // deixado de pedir sorvete.
+    await orchestrator.createVisitAt({
+      registeredBy: null,
+      enteredStore: true,
+      sawProducts: true,
+      purchased: false,
+      amountSpent: 0,
+      orderCategories: [],
+      createdAt: new Date("2026-07-12T15:00:00Z"),
+    });
+
+    const result = await product.byCategory({ from: FROM, to: TO });
+
+    expect(result).toEqual([
+      { value: "sorvete", visits: 2, percentage: 100, averageTicket: 30 },
+      { value: "bebida", visits: 1, percentage: 50, averageTicket: 40 },
+    ]);
+  });
+
   test("returns an empty array for a period with no visits", async () => {
     const result = await product.byCategory({
       from: new Date("2020-01-01T00:00:00Z"),

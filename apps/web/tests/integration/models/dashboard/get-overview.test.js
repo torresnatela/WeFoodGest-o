@@ -37,6 +37,7 @@ describe("dashboard.getOverview()", () => {
     const overview = await dashboard.getOverview(RANGE);
 
     expect(overview.summary).toEqual(await dashboard.summary(RANGE));
+    expect(overview.funnel).toEqual(await dashboard.funnel(RANGE));
     expect(overview.timeline).toEqual(await dashboard.timeline(RANGE));
     expect(overview.discoverySources).toEqual(await dashboard.byDiscoverySource(RANGE));
     expect(overview.reasons).toEqual(await dashboard.byReason(RANGE));

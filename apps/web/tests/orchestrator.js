@@ -52,12 +52,26 @@ async function runPendingMigrations() {
   await migrator.runPendingMigrations();
 }
 
+// visit.create() demands the three funnel answers and gives them no default —
+// a visit that forgets one has to fail loudly instead of silently claiming the
+// person entered, looked and bought. Most tests are about something else
+// entirely, so the "ordinary customer" default lives here, in the test helper,
+// and not in the model.
+async function createVisit({
+  enteredStore = true,
+  sawProducts = true,
+  purchased = true,
+  ...visitInput
+}) {
+  return await visit.create({ enteredStore, sawProducts, purchased, ...visitInput });
+}
+
 // visits.created_at defaults to now() and visit.create() takes no date, but
 // the dashboard is only meaningful with visits spread over time. This creates
 // the visit through the real model and then backdates it, so the insert path
 // under test stays real.
 async function createVisitAt({ createdAt, ...visitInput }) {
-  const createdVisit = await visit.create(visitInput);
+  const createdVisit = await createVisit(visitInput);
 
   await database.query({
     text: "UPDATE visits SET created_at = $1 WHERE id = $2;",
@@ -71,6 +85,7 @@ module.exports = {
   waitForAllServices,
   dropAllTables,
   runPendingMigrations,
+  createVisit,
   createVisitAt,
   webserverUrl: webserver.host,
 };

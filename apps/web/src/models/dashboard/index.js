@@ -1,5 +1,6 @@
 const period = require("./period");
 const movement = require("./movement");
+const funnel = require("./funnel");
 const marketing = require("./marketing");
 const product = require("./product");
 const clients = require("./clients");
@@ -12,6 +13,7 @@ async function getOverview({ from, to, granularity }) {
 
   const [
     summary,
+    visitFunnel,
     timeline,
     discoverySources,
     reasons,
@@ -23,6 +25,7 @@ async function getOverview({ from, to, granularity }) {
     birthdays,
   ] = await Promise.all([
     movement.summary(range),
+    funnel.funnel(range),
     movement.timeline({ from, to, granularity }),
     marketing.byDiscoverySource(range),
     marketing.byReason(range),
@@ -37,6 +40,7 @@ async function getOverview({ from, to, granularity }) {
   return {
     month,
     summary,
+    funnel: visitFunnel,
     timeline,
     discoverySources,
     reasons,
@@ -52,6 +56,7 @@ async function getOverview({ from, to, granularity }) {
 module.exports = {
   ...period,
   ...movement,
+  ...funnel,
   ...marketing,
   ...product,
   ...clients,

@@ -1,6 +1,5 @@
 const orchestrator = require("../../../orchestrator");
 const client = require("@/models/client");
-const visit = require("@/models/visit");
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -12,7 +11,7 @@ describe("client.search() com dados de visita", () => {
   test("devolve a contagem de visitas e a data da última", async () => {
     const createdClient = await client.create({ name: "Ana Frequente", phone: "11955551001" });
 
-    await visit.create({
+    await orchestrator.createVisit({
       clientId: createdClient.id,
       registeredBy: null,
       amountSpent: 10,
@@ -21,7 +20,7 @@ describe("client.search() com dados de visita", () => {
       discoverySource: "outro",
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    const lastVisit = await visit.create({
+    const lastVisit = await orchestrator.createVisit({
       clientId: createdClient.id,
       registeredBy: null,
       amountSpent: 20,

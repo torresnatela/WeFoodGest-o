@@ -15,14 +15,18 @@ async function countByColumn(column, { from, to }) {
       SELECT ${column} AS value, COUNT(*) AS visits
       FROM visits
       WHERE created_at >= $1 AND created_at <= $2
+        AND ${column} IS NOT NULL
       GROUP BY ${column}
       ORDER BY COUNT(*) DESC, ${column};
     `,
     values: [from, to],
   });
 
-  // Both columns are NOT NULL, so every visit in the period lands in exactly
-  // one row — the totals add up without a second query.
+  // As duas colunas aceitam nulo: motivo e origem dependem de a pessoa
+  // responder, e quem passou em frente sem entrar não respondeu nada. O
+  // IS NOT NULL acima tira essas visitas da conta, então o total abaixo é o de
+  // quem respondeu — que é o denominador certo para o percentual. Contá-las
+  // diluiria todas as fatias por gente que nunca foi perguntada.
   const total = result.rows.reduce((sum, row) => sum + toNumber(row.visits), 0);
 
   return result.rows.map((row) => ({

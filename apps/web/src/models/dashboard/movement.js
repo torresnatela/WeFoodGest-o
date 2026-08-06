@@ -8,13 +8,17 @@ const GRANULARITY_INTERVALS = {
   week: "1 week",
 };
 
+// `visits` e `revenue` contam tudo: o total de visitas é o número honesto de
+// movimento agora que ele inclui quem não comprou, e o faturamento não muda
+// porque essas visitas somam zero. Só o ticket médio precisa do FILTER — a
+// média sobre todas afundaria a cada pessoa que entrou e saiu sem comprar.
 async function summary({ from, to }) {
   const result = await database.query({
     text: `
       SELECT
         COUNT(*) AS visits,
         COALESCE(SUM(amount_spent), 0) AS revenue,
-        COALESCE(AVG(amount_spent), 0) AS average_ticket,
+        COALESCE(AVG(amount_spent) FILTER (WHERE purchased), 0) AS average_ticket,
         COUNT(DISTINCT client_id) AS clients_served
       FROM visits
       WHERE created_at >= $1 AND created_at <= $2;
