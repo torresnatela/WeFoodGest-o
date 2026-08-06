@@ -28,3 +28,6 @@ postgres-data/
 
 # brainstorming visual companion
 .superpowers/
+
+# claude code (guarda git worktrees — um checkout inteiro, não pode ser versionado aqui)
+.claude/

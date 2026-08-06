@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p ${PORT:-3010}",
     "build": "next build",
+    "migrations:up:deploy": "npm run --prefix ../../packages/database migrations:up:deploy",
     "start": "next start -p ${PORT:-3010}",
     "lint": "eslint",
     "test": "concurrently --kill-others --success first --names NEXT,JEST -c green,magenta \"next dev -p ${PORT:-3010}\" \"jest --runInBand --verbose\"",

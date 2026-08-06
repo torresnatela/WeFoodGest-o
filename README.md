@@ -64,6 +64,26 @@ docker-compose.yml   Postgres 17 local (porta 5435)
 | `npm run migrations:up` / `migrations:down` | Aplica/reverte migrations |
 | `npm run migrations:create` | Cria um novo arquivo de migration |
 
-## Produção
+## Produção (Vercel)
 
-`DATABASE_URL` de produção (Neon) é configurada nas variáveis de ambiente do projeto na Vercel — nunca é commitada. O `apps/web/.env` versionado no repo só tem os defaults do Docker local (sem segredos reais).
+Na criação do projeto na Vercel:
+
+- **Root Directory**: `apps/web` (mantenha marcado *Include source files outside of the Root Directory*, necessário para o workspace `packages/database`)
+- **Framework**: Next.js (já declarado em `apps/web/vercel.json`)
+- **Build Command**: não mexa — `apps/web/vercel.json` já define `npm run migrations:up:deploy && npm run build`
+
+### Variável de ambiente
+
+Só uma precisa ser configurada na Vercel:
+
+| Variável | Valor |
+| --- | --- |
+| `DATABASE_URL` | Connection string do Neon, com `?sslmode=require` — marque *Production* e *Preview* |
+
+Nunca é commitada. O `apps/web/.env` versionado no repo só tem os defaults do Docker local (sem segredos reais) e **não** atrapalha em produção: tanto o Next.js quanto o `node-pg-migrate` dão precedência à variável já presente no ambiente.
+
+### Migrations a cada deploy
+
+O build da Vercel roda `npm run migrations:up:deploy` antes do `next build`. Esse script chama o `node-pg-migrate` direto (sem o `dotenv -e ../../apps/web/.env` do `migrations:up` local), então ele usa o `DATABASE_URL` do ambiente da Vercel.
+
+Se uma migration falhar, o build falha e o deploy **não** é promovido — a versão anterior continua no ar.
