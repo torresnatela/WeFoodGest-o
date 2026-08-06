@@ -1,3 +1,5 @@
+import Logo from "@/components/ui/logo";
+
 import ReviewForm from "./review-form";
 
 export const metadata = {
@@ -12,7 +14,7 @@ export default function AvaliarPage() {
     <div className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <div className="text-center">
-          <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
+          <Logo className="mx-auto w-36" />
           <h1 className="mt-2 text-xl font-extrabold text-ink">Como foi sua visita?</h1>
           <p className="text-sm text-muted">Leva menos de um minuto e é anônimo.</p>
         </div>

@@ -7,6 +7,7 @@ import Alert from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
+import Logo from "@/components/ui/logo";
 
 export default function AcceptInviteForm({ token, name, roleName }) {
   const router = useRouter();
@@ -50,8 +51,8 @@ export default function AcceptInviteForm({ token, name, roleName }) {
   return (
     <div className="flex w-full max-w-sm flex-col gap-6">
       <div className="text-center">
-        <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
-        <p className="text-sm text-muted">Sistema de gestão</p>
+        <Logo className="mx-auto w-36" />
+        <p className="mt-2 text-sm text-muted">Sistema de gestão</p>
       </div>
 
       <Card as="form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">

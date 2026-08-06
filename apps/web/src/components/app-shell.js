@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import Button from "./ui/button";
+import Logo from "./ui/logo";
 import LogoutButton from "./logout-button";
 import NavLink from "./nav-link";
 
@@ -38,7 +39,7 @@ export default function AppShell({
       </a>
 
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface p-4 lg:flex">
-        <p className="mb-6 font-display text-xl font-extrabold text-brand">WeFood</p>
+        <Logo className="mb-6 w-32" />
         <Button as={Link} href="/visitas/nova" className="mb-6 w-full text-center">
           Registrar visita
         </Button>
@@ -65,7 +66,7 @@ export default function AppShell({
       </aside>
 
       <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 lg:hidden">
-        <p className="font-display text-lg font-extrabold text-brand">WeFood</p>
+        <Logo className="w-28" />
         <LogoutButton />
       </header>
 
