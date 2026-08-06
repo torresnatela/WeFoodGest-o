@@ -1,3 +1,9 @@
+// Estas telas rodam em Server Components, então sem fuso explícito elas usariam
+// o `TZ` do host — UTC na maioria das hospedagens. Toda visita depois das 21h
+// de São Paulo cairia no dia seguinte, contradizendo o painel do início, que já
+// calcula o dia em `America/Sao_Paulo`.
+const TIME_ZONE = "America/Sao_Paulo";
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -7,7 +13,22 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
+  timeZone: TIME_ZONE,
 });
+
+// `en-CA` devolve `YYYY-MM-DD`, que dá a data do calendário de São Paulo já
+// pronta para virar número de dia.
+const isoDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: TIME_ZONE,
+});
+
+function startOfSaoPauloDay(value) {
+  const [year, month, day] = isoDateFormatter.format(value).split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
 
 function onlyDigits(text) {
   return String(text ?? "").replace(/\D/g, "");
@@ -20,12 +41,19 @@ function formatPhone(value) {
     return "";
   }
 
+  // Acima de 11 dígitos nenhuma máscara brasileira serve — um número com código
+  // do país, por exemplo. Cortar para caber renderizaria um telefone diferente
+  // do que está gravado, e um dígito mais curto. Devolve a entrada como veio.
+  if (digits.length > 11) {
+    return String(value);
+  }
+
   if (digits.length <= 2) {
     return `(${digits}`;
   }
 
   const areaCode = digits.slice(0, 2);
-  const rest = digits.slice(2, 11);
+  const rest = digits.slice(2);
 
   if (rest.length <= 4) {
     return `(${areaCode}) ${rest}`;
@@ -45,12 +73,10 @@ function formatRelativeDate(value) {
   }
 
   const date = value instanceof Date ? value : new Date(value);
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfDate = new Date(date);
-  startOfDate.setHours(0, 0, 0, 0);
 
-  const days = Math.round((startOfToday - startOfDate) / 86400000);
+  // A diferença sai da comparação entre duas datas de calendário, não de um
+  // delta em milissegundos: dias inteiros em São Paulo, independentes da hora.
+  const days = (startOfSaoPauloDay(new Date()) - startOfSaoPauloDay(date)) / 86400000;
 
   if (days <= 0) {
     return "hoje";

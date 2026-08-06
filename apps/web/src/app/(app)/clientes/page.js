@@ -1,77 +1,112 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
-import authentication from "@/models/authentication";
+import requireAuthenticatedUser from "../../require-auth";
 import client from "@/models/client";
+import Badge from "@/components/ui/badge";
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import EmptyState from "@/components/ui/empty-state";
+import { formatPhone, formatRelativeDate } from "@/lib/format";
+import ClientsSearch from "./clients-search";
 
 export default async function ClientesPage({ searchParams }) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("session_id")?.value;
-  const authenticatedUser = await authentication.getUserFromSessionToken(token);
-
-  if (!authenticatedUser) {
-    redirect("/login");
-  }
+  await requireAuthenticatedUser();
 
   const { search } = await searchParams;
   const clients = await client.search({ name: search });
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-4 py-16 dark:bg-black">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Clientes</h1>
-          <Link
-            href="/clientes/novo"
-            className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-          >
-            Novo cliente
-          </Link>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-8">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-ink">Clientes</h1>
+          <p className="text-sm text-muted">
+            {clients.length} {clients.length === 1 ? "cliente" : "clientes"}
+          </p>
         </div>
-
-        <form className="flex gap-2">
-          <input
-            type="text"
-            name="search"
-            defaultValue={search ?? ""}
-            placeholder="Buscar por nome"
-            className="flex-1 rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-          />
-          <button
-            type="submit"
-            className="rounded-full border border-black/[.08] px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-50 dark:hover:bg-[#1a1a1a]"
-          >
-            Buscar
-          </button>
-        </form>
-
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-black/[.08] text-zinc-600 dark:border-white/[.145] dark:text-zinc-400">
-              <th className="py-2 font-medium">Nome</th>
-              <th className="py-2 font-medium">Telefone</th>
-              <th className="py-2 font-medium">Bairro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((listedClient) => (
-              <tr
-                key={listedClient.id}
-                className="border-b border-black/[.08] text-black dark:border-white/[.145] dark:text-zinc-50"
-              >
-                <td className="py-2">
-                  <Link href={`/clientes/${listedClient.id}`} className="underline">
-                    {listedClient.name}
-                  </Link>
-                </td>
-                <td className="py-2">{listedClient.phone}</td>
-                <td className="py-2">{listedClient.neighborhood ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Button as={Link} href="/clientes/novo">
+          Novo cliente
+        </Button>
       </div>
+
+      <ClientsSearch defaultValue={search ?? ""} />
+
+      {clients.length === 0 ? (
+        <EmptyState
+          icon={search ? "🔎" : "🍦"}
+          title={search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+          description={
+            search
+              ? `Nada corresponde a "${search}". Confira a grafia ou cadastre um novo cliente.`
+              : "Cadastre o primeiro cliente para começar a registrar visitas."
+          }
+          action={
+            <Button as={Link} href="/clientes/novo">
+              Novo cliente
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 sm:hidden">
+            {clients.map((listedClient) => (
+              <Card key={listedClient.id} className="flex items-center gap-3 p-4">
+                <Link href={`/clientes/${listedClient.id}`} className="flex-1">
+                  <p className="font-semibold text-ink">{listedClient.name}</p>
+                  <p className="text-sm text-muted">
+                    {formatPhone(listedClient.phone)}
+                    {listedClient.neighborhood ? ` · ${listedClient.neighborhood}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    Última visita: {formatRelativeDate(listedClient.last_visit_at)}
+                  </p>
+                </Link>
+                <Badge tone="brand">{listedClient.visit_count}</Badge>
+                <Link
+                  href={`/visitas/nova?clientId=${listedClient.id}`}
+                  aria-label={`Registrar visita de ${listedClient.name}`}
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-brand-tint text-lg font-bold text-brand"
+                >
+                  +
+                </Link>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="hidden overflow-hidden sm:block">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-surface-2 text-xs uppercase tracking-wide text-muted">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-bold">Nome</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Telefone</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Bairro</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Visitas</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Última visita</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map((listedClient) => (
+                  <tr key={listedClient.id} className="border-t border-line">
+                    <td className="px-4 py-3">
+                      <Link href={`/clientes/${listedClient.id}`} className="font-semibold text-ink hover:text-brand">
+                        {listedClient.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{formatPhone(listedClient.phone)}</td>
+                    <td className="px-4 py-3 text-muted">{listedClient.neighborhood ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge tone="brand">{listedClient.visit_count}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted">
+                      {formatRelativeDate(listedClient.last_visit_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

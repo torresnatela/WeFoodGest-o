@@ -5,19 +5,16 @@ export const metadata = {
   description: "Conte pra gente o que você achou da loja",
 };
 
-// Public page: no session check on purpose — this is what the in-store QR code
-// points to, and the customer is never logged in.
+// Página pública: sem checagem de sessão de propósito — é para onde o QR code
+// da loja aponta, e o cliente nunca está logado.
 export default function AvaliarPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-black">
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <div className="flex flex-col gap-1 text-center">
-          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
-            Como foi sua visita?
-          </h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Leva menos de um minuto e é anônimo.
-          </p>
+    <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="text-center">
+          <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
+          <h1 className="mt-2 text-xl font-extrabold text-ink">Como foi sua visita?</h1>
+          <p className="text-sm text-muted">Leva menos de um minuto e é anônimo.</p>
         </div>
         <ReviewForm />
       </div>

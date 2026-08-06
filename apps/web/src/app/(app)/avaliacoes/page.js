@@ -1,70 +1,79 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
-import authentication from "@/models/authentication";
+import requireAuthenticatedUser from "../../require-auth";
 import review from "@/models/review";
+import Badge from "@/components/ui/badge";
+import Card from "@/components/ui/card";
+import EmptyState from "@/components/ui/empty-state";
+import { formatRelativeDate } from "@/lib/format";
 
-function formatStars(rating) {
-  return "★".repeat(rating) + "☆".repeat(5 - rating);
+// `role="img"` porque um <span> é `role="generic"`, e ARIA proíbe nome
+// acessível em genérico: o leitor de tela cairia nos glifos crus. A nota vai
+// no rótulo sem arredondar — os glifos é que arredondam.
+function Stars({ rating }) {
+  const filledCount = Math.round(rating);
+  const label = Number(rating).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+  return (
+    <span role="img" aria-label={`Nota ${label} de 5`} className="text-lg leading-none">
+      <span aria-hidden="true" className="text-accent">
+        {"★".repeat(filledCount)}
+      </span>
+      <span aria-hidden="true" className="text-line">
+        {"☆".repeat(5 - filledCount)}
+      </span>
+    </span>
+  );
 }
 
 export default async function AvaliacoesPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("session_id")?.value;
-  const authenticatedUser = await authentication.getUserFromSessionToken(token);
-
-  if (!authenticatedUser) {
-    redirect("/login");
-  }
+  await requireAuthenticatedUser();
 
   const summary = await review.getSummary();
   const reviews = await review.findAll();
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-4 py-16 dark:bg-black">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Avaliações</h1>
-
-        <div className="rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
-          {summary.total === 0 ? (
-            <p className="text-zinc-600 dark:text-zinc-400">Nenhuma avaliação ainda.</p>
-          ) : (
-            <p className="text-black dark:text-zinc-50">
-              <span className="text-2xl font-semibold">
-                {summary.average.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} de 5
-              </span>
-              <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">
-                {summary.total === 1 ? "1 avaliação" : `${summary.total} avaliações`}
-              </span>
-            </p>
-          )}
-        </div>
-
-        <ul className="flex flex-col gap-3">
-          {reviews.map((listedReview) => (
-            <li
-              key={listedReview.id}
-              className="flex flex-col gap-2 rounded-lg border border-black/[.08] bg-white p-4 dark:border-white/[.145] dark:bg-zinc-950"
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-amber-400" aria-label={`Nota ${listedReview.rating} de 5`}>
-                  {formatStars(listedReview.rating)}
-                </span>
-                <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                  {new Date(listedReview.created_at).toLocaleString("pt-BR")}
-                </span>
-              </div>
-              {listedReview.comment && (
-                <p className="text-sm text-black dark:text-zinc-50">{listedReview.comment}</p>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          Link público para o QR code da loja: <span className="font-mono">/avaliar</span>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
+      <div>
+        <h1 className="text-2xl font-extrabold text-ink">Avaliações</h1>
+        <p className="text-sm text-muted">
+          Link público do QR code da loja: <span className="font-mono">/avaliar</span>
         </p>
       </div>
+
+      {summary.total === 0 ? (
+        <EmptyState
+          icon="⭐"
+          title="Nenhuma avaliação ainda"
+          description="Deixe o QR code da loja apontando para /avaliar e as notas dos clientes aparecem aqui."
+        />
+      ) : (
+        <>
+          <Card className="flex items-center gap-4 p-6">
+            <p className="font-display text-4xl font-extrabold text-ink">
+              {summary.average.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+            </p>
+            <div>
+              <Stars rating={summary.average} />
+              <p className="text-sm text-muted">
+                {summary.total === 1 ? "1 avaliação" : `${summary.total} avaliações`}
+              </p>
+            </div>
+          </Card>
+
+          <ul className="flex flex-col gap-3">
+            {reviews.map((listedReview) => (
+              <Card as="li" key={listedReview.id} className="flex flex-col gap-2 p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <Stars rating={listedReview.rating} />
+                  <Badge tone="neutral">{formatRelativeDate(listedReview.created_at)}</Badge>
+                </div>
+                {listedReview.comment && (
+                  <p className="text-sm text-ink">{listedReview.comment}</p>
+                )}
+              </Card>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

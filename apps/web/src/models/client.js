@@ -4,6 +4,14 @@ const { ValidationError } = require("@/infra/errors");
 const UNIQUE_VIOLATION = "23505";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// O modelo é a fronteira que decide a forma do telefone, não a interface. Sem
+// isso, uma linha antiga gravada como "(15) 99123-4001" seria invisível para
+// uma busca que manda dígitos, o índice único não dispararia, e o mesmo cliente
+// nasceria de novo com o histórico partido em dois.
+function normalizePhone(phone) {
+  return String(phone ?? "").replace(/\D/g, "");
+}
+
 async function create({ name, phone, birthDate, neighborhood, city }) {
   try {
     const result = await database.query({
@@ -12,7 +20,13 @@ async function create({ name, phone, birthDate, neighborhood, city }) {
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, phone, birth_date, neighborhood, city, created_at, updated_at;
       `,
-      values: [name, phone, birthDate ?? null, neighborhood ?? null, city ?? null],
+      values: [
+        name,
+        normalizePhone(phone),
+        birthDate ?? null,
+        neighborhood ?? null,
+        city ?? null,
+      ],
     });
 
     return result.rows[0];
@@ -35,7 +49,7 @@ async function findByPhone(phone) {
       FROM clients
       WHERE phone = $1;
     `,
-    values: [phone],
+    values: [normalizePhone(phone)],
   });
 
   return result.rows[0] ?? null;
@@ -61,10 +75,16 @@ async function findById(id) {
 async function search({ name }) {
   const result = await database.query({
     text: `
-      SELECT id, name, phone, birth_date, neighborhood, city, created_at, updated_at
-      FROM clients
-      WHERE name ILIKE $1
-      ORDER BY name;
+      SELECT
+        c.id, c.name, c.phone, c.birth_date, c.neighborhood, c.city,
+        c.created_at, c.updated_at,
+        COUNT(v.id)::int AS visit_count,
+        MAX(v.created_at) AS last_visit_at
+      FROM clients c
+      LEFT JOIN visits v ON v.client_id = c.id
+      WHERE c.name ILIKE $1
+      GROUP BY c.id
+      ORDER BY c.name;
     `,
     values: [`%${name ?? ""}%`],
   });

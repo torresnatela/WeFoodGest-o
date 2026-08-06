@@ -112,7 +112,23 @@ async function findByClientId(clientId) {
   return result.rows;
 }
 
+async function summaryForToday() {
+  const result = await database.query({
+    text: `
+      SELECT
+        COUNT(*)::int AS count,
+        COALESCE(SUM(amount_spent), 0)::float AS total
+      FROM visits
+      WHERE created_at >= date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+        AT TIME ZONE 'America/Sao_Paulo';
+    `,
+  });
+
+  return result.rows[0];
+}
+
 module.exports = {
   create,
   findByClientId,
+  summaryForToday,
 };

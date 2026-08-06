@@ -3,29 +3,43 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import Alert from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Input from "@/components/ui/input";
+
 export default function AcceptInviteForm({ token, name, roleName }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [error, setError] = useState(null);
+  // Nenhuma mensagem daqui é de um campo só: a divergência entre as senhas é
+  // sobre o par, e queda de rede não é sobre campo nenhum.
+  const [pageError, setPageError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError(null);
+    setPageError(null);
     setIsSubmitting(true);
 
-    const response = await fetch(`/api/v1/invites/${token}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password, password_confirmation: passwordConfirmation }),
-    });
+    let response;
+    try {
+      response = await fetch(`/api/v1/invites/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, password_confirmation: passwordConfirmation }),
+      });
+    } catch {
+      setIsSubmitting(false);
+      setPageError("Não foi possível falar com o servidor. Tente de novo.");
+      return;
+    }
 
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
-      setError(body.message ?? "Não foi possível concluir o cadastro.");
+      const body = await response.json().catch(() => ({}));
+      setPageError(body.message ?? "Não foi possível concluir o cadastro.");
       return;
     }
 
@@ -34,50 +48,47 @@ export default function AcceptInviteForm({ token, name, roleName }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-zinc-950"
-    >
-      <div>
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Bem-vinda, {name}</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Você foi convidada como {roleName}. Defina uma senha para concluir seu cadastro.
-        </p>
+    <div className="flex w-full max-w-sm flex-col gap-6">
+      <div className="text-center">
+        <p className="font-display text-3xl font-extrabold text-brand">WeFood</p>
+        <p className="text-sm text-muted">Sistema de gestão</p>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Senha
-        <input
+      <Card as="form" onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+        <div>
+          <h1 className="text-xl font-extrabold text-ink">Boas-vindas, {name}</h1>
+          <p className="text-sm text-muted">
+            Seu convite é para o papel de {roleName}. Defina uma senha para concluir o cadastro.
+          </p>
+        </div>
+
+        <Input
+          label="Senha"
           type="password"
           required
           minLength={8}
+          autoComplete="new-password"
+          hint="Mínimo de 8 caracteres"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
         />
-      </label>
 
-      <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Confirmar senha
-        <input
+        <Input
+          label="Confirmar senha"
           type="password"
           required
           minLength={8}
+          autoComplete="new-password"
           value={passwordConfirmation}
           onChange={(event) => setPasswordConfirmation(event.target.value)}
-          className="rounded-md border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
         />
-      </label>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        <Alert>{pageError}</Alert>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-      >
-        {isSubmitting ? "Concluindo..." : "Concluir cadastro"}
-      </button>
-    </form>
+        <Button type="submit" size="lg" isLoading={isSubmitting} loadingLabel="Concluindo...">
+          Concluir cadastro
+        </Button>
+      </Card>
+    </div>
   );
 }

@@ -22,6 +22,7 @@
 - Texto sobre preenchimento saturado (`bg-brand`, `bg-success`, `bg-danger`) usa `text-on-brand`, nunca `text-white`. O token é branco no tema claro e quase-preto (`#14100d`) no escuro — porque os tons vivos do modo escuro (`#ff5a3c`, `#3dbe85`, `#ff8a80`) reprovam em AA com texto branco (3,1:1 no caso do coral) e passam com folga com texto escuro (6,1:1 a 7,6:1).
 - Os primitivos em `src/components/ui/` ficam abaixo de ~80 linhas cada. Este limite vale **só** para eles: páginas e componentes de fluxo (`register-visit-flow.js`, `app-shell.js`) são legitimamente maiores, e o plano traz o código completo deles.
 - Arquivos com `useState`/`useEffect`/handlers levam `"use client"` na primeira linha; páginas que fazem `await` em dados são Server Components e não levam.
+- Toda leitura de corpo de resposta com erro usa `await response.json().catch(() => ({}))`. Sem isso, uma resposta de erro cujo corpo não seja JSON — um 500 vindo de qualquer exceção não tratada num Route Handler, por exemplo — lança um `SyntaxError` que escapa do handler, e o usuário fica sem mensagem nenhuma. O `?? "mensagem padrão"` que já existe em cada formulário só funciona se o parse não explodir antes.
 
 ## Como rodar os testes
 
@@ -1017,7 +1018,13 @@ O `AppShell` é Server Component e não conhece a rota atual. Marcar o item ativ
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function NavLink({ href, className = "", activeClassName = "", children }) {
+export default function NavLink({
+  href,
+  className = "",
+  activeClassName = "",
+  inactiveClassName = "",
+  children,
+}) {
   const pathname = usePathname();
   const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -1025,7 +1032,7 @@ export default function NavLink({ href, className = "", activeClassName = "", ch
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
-      className={`${className} ${isActive ? activeClassName : ""}`}
+      className={`${className} ${isActive ? activeClassName : inactiveClassName}`}
     >
       {children}
     </Link>
@@ -1033,7 +1040,11 @@ export default function NavLink({ href, className = "", activeClassName = "", ch
 }
 ```
 
-A comparação de `/` é exata porque `startsWith("/")` casaria com toda rota do app.
+Dois detalhes que não são estilo, são correção:
+
+A comparação de `/` é exata porque `startsWith("/")` casaria com toda rota do app e deixaria "Início" sempre aceso.
+
+Os estados ativo e inativo são **excludentes**, cada um com sua própria cor — nunca uma cor base sobrescrita por outra. Concatenar `text-brand` por cima de um `text-muted` fixo não funciona: as duas classes têm a mesma especificidade, e quem vence é a que o Tailwind declara por último na folha compilada, não a que aparece por último no `className`. Como `.text-muted` sai depois de `.text-brand` na ordenação alfabética, o cinza venceria sempre e o item ativo nunca mudaria de cor.
 
 - [ ] **Step 5: Escrever `app-shell.js`**
 
@@ -1070,8 +1081,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
             <NavLink
               key={item.href}
               href={item.href}
-              className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
-              activeClassName="bg-brand-tint text-brand"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-surface-2"
+              activeClassName="bg-brand-tint font-bold text-brand"
+              inactiveClassName="font-medium text-muted hover:text-ink"
             >
               <span aria-hidden="true" className="mr-2">
                 {item.icon}
@@ -1101,8 +1113,9 @@ export default function AppShell({ user, canManageUsers = false, children }) {
           <NavLink
             key={item.href}
             href={item.href}
-            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted"
-            activeClassName="text-brand"
+            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs"
+            activeClassName="font-bold text-brand"
+            inactiveClassName="font-medium text-muted"
           >
             <span aria-hidden="true" className="text-lg">
               {item.icon}
@@ -1387,10 +1400,73 @@ describe("visit.summaryForToday()", () => {
     expect(summary.count).toBe(2);
     expect(summary.total).toBe(15);
   });
+
+  test("exclui uma visita de um segundo antes da meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Fronteira", phone: "11944441003" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 77,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+          - interval '1 second'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(2);
+    expect(summary.total).toBe(15);
+  });
+
+  test("inclui uma visita exatamente na meia-noite em São Paulo", async () => {
+    const createdClient = await client.create({ name: "Cliente Meia-noite", phone: "11944441004" });
+
+    const createdVisit = await visit.create({
+      clientId: createdClient.id,
+      registeredBy: null,
+      amountSpent: 33,
+      orderCategories: ["sorvete"],
+      reason: "outro",
+      discoverySource: "outro",
+    });
+
+    await database.query({
+      text: `
+        UPDATE visits
+        SET created_at =
+          date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+            AT TIME ZONE 'America/Sao_Paulo'
+        WHERE id = $1;
+      `,
+      values: [createdVisit.id],
+    });
+
+    const summary = await visit.summaryForToday();
+
+    expect(summary.count).toBe(3);
+    expect(summary.total).toBe(48);
+  });
 });
 ```
 
 Os números do terceiro teste são os do segundo de propósito: os testes rodam em sequência no mesmo banco, e a visita de 99 empurrada para dois dias atrás não pode alterar o resultado.
+
+**Os dois últimos testes são os que de fato cobrem o fuso, e existem porque o terceiro não cobre.** Recuar 48 horas passa por qualquer fronteira de dia, em qualquer fuso — o terceiro teste continuaria verde se a query usasse `date_trunc('day', now())` em UTC puro, sem conversão nenhuma. Já um instante colocado um segundo antes da meia-noite de São Paulo cai às 02:59:59 UTC: a implementação correta o exclui, e uma implementação em UTC o incluiria. É a diferença de três horas que dá o poder de discriminação.
+
+Uma limitação honesta: entre 00:00 e 03:00 UTC (21:00 às 00:00 em São Paulo) esses dois instantes caem do mesmo lado das duas fronteiras, e o teste passa sem discriminar. Ele nunca falha com o código correto — só perde o poder de detecção nessa janela de três horas.
 
 - [ ] **Step 2: Rodar e confirmar que falha**
 
@@ -1490,7 +1566,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível entrar.");
       return;
     }
@@ -1677,6 +1753,17 @@ import { useRouter } from "next/navigation";
 export default function ClientsSearch({ defaultValue = "" }) {
   const router = useRouter();
   const [term, setTerm] = useState(defaultValue);
+  const [urlTerm, setUrlTerm] = useState(defaultValue);
+
+  // Quando a URL muda por fora — o usuário clicou em "Clientes" na navegação,
+  // por exemplo — esta rota não remonta o componente, então o estado local
+  // sobreviveria com o termo antigo. Sem esta sincronização, o efeito abaixo
+  // veria a divergência e navegaria de volta para a busca anterior, desfazendo
+  // o clique do usuário 300ms depois, sem nenhum aviso.
+  if (defaultValue !== urlTerm) {
+    setUrlTerm(defaultValue);
+    setTerm(defaultValue);
+  }
 
   useEffect(() => {
     if (term === defaultValue) {
@@ -1908,16 +1995,25 @@ export default function ClientForm({ onCreated, submitLabel = "Cadastrar", initi
     }
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível cadastrar o cliente.");
+      setIsSubmitting(false);
 
-      const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
-      if (lookup.ok) {
-        const lookupBody = await lookup.json();
-        setDuplicateId(lookupBody.clients[0]?.id ?? null);
+      // A busca abaixo é um extra: serve só para oferecer um caminho de saída
+      // quando o telefone já existe. Ela vem depois de destravar o botão e
+      // dentro de um try, porque falhar aqui não pode piorar a situação — a
+      // mensagem de erro principal já está na tela.
+      try {
+        const lookup = await fetch(`/api/v1/clients?phone=${encodeURIComponent(phone)}`);
+
+        if (lookup.ok) {
+          const lookupBody = await lookup.json().catch(() => ({}));
+          setDuplicateId(lookupBody.clients?.[0]?.id ?? null);
+        }
+      } catch {
+        // Sem link de saída, mas o erro continua visível e o botão, utilizável.
       }
 
-      setIsSubmitting(false);
       return;
     }
 
@@ -2238,10 +2334,15 @@ export default function RegisterVisitFlow({ initialClient }) {
   const loadHistory = useCallback(async (clientId) => {
     try {
       const response = await fetch(`/api/v1/clients/${clientId}`);
-      if (!response.ok) {
+      const body = response.ok ? await response.json().catch(() => ({})) : {};
+
+      // Todo caminho precisa acabar com `history` preenchido. Deixar em `null`
+      // travaria o formulário no estado de carregando para sempre.
+      if (!body.visits) {
+        setHistory([]);
         return;
       }
-      const body = await response.json();
+
       setHistory(body.visits);
 
       const firstVisit = body.visits[body.visits.length - 1];
@@ -2256,6 +2357,11 @@ export default function RegisterVisitFlow({ initialClient }) {
 
   useEffect(() => {
     if (foundClient) {
+      // `loadHistory` começa com um await, então nada chama setState de forma
+      // síncrona aqui — a regra do lint não enxerga através da função async.
+      // Carregar dados quando o cliente escolhido muda é o caso legítimo de
+      // efeito, não o que a regra existe para impedir.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadHistory(foundClient.id);
     }
   }, [foundClient, loadHistory]);
@@ -2275,9 +2381,9 @@ export default function RegisterVisitFlow({ initialClient }) {
     }
 
     setIsSearching(false);
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
+    if (!response.ok || !body.clients) {
       setSearchError(body.message ?? "Não foi possível buscar o cliente.");
       return;
     }
@@ -2340,7 +2446,7 @@ export default function RegisterVisitFlow({ initialClient }) {
     setIsSubmittingVisit(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setVisitError(body.message ?? "Não foi possível registrar a visita.");
       return;
     }
@@ -2386,7 +2492,13 @@ export default function RegisterVisitFlow({ initialClient }) {
     );
   }
 
-  const isReturning = history !== null && history.length > 0;
+  // Enquanto o histórico não chega não dá para saber se o cliente é novo ou
+  // recorrente. Sem esta distinção, o formulário afirmaria "Primeira visita" e
+  // abriria os chips de origem para todo mundo, e depois recolheria tudo quando
+  // a resposta chegasse — piscando na tela mais usada da loja, e descartando em
+  // silêncio um chip que a atendente tivesse tocado nessa janela.
+  const isHistoryLoaded = history !== null;
+  const isReturning = isHistoryLoaded && history.length > 0;
   const showDiscoveryChips = !isReturning || isEditingDiscovery;
 
   return (
@@ -2394,9 +2506,11 @@ export default function RegisterVisitFlow({ initialClient }) {
       <div>
         <h1 className="text-xl font-extrabold text-ink">{foundClient.name}</h1>
         <p className="text-sm text-muted">
-          {isReturning
-            ? `${history.length + 1}ª visita · última ${formatRelativeDate(history[0].created_at)}`
-            : "Primeira visita"}
+          {!isHistoryLoaded
+            ? "Carregando histórico..."
+            : isReturning
+              ? `${history.length + 1}ª visita · última ${formatRelativeDate(history[0].created_at)}`
+              : "Primeira visita"}
         </p>
       </div>
 
@@ -2459,7 +2573,9 @@ export default function RegisterVisitFlow({ initialClient }) {
           De onde conheceu a loja
         </legend>
 
-        {showDiscoveryChips ? (
+        {!isHistoryLoaded ? (
+          <p className="text-sm text-muted">Carregando...</p>
+        ) : showDiscoveryChips ? (
           <>
             <div className="flex flex-wrap gap-2">
               {DISCOVERY_OPTIONS.map((option) => (
@@ -2633,15 +2749,20 @@ export default function NewUserForm() {
 
   useEffect(() => {
     async function loadRoles() {
-      const response = await fetch("/api/v1/roles");
-      if (!response.ok) {
+      const response = await fetch("/api/v1/roles").catch(() => null);
+      const body = response?.ok ? await response.json().catch(() => ({})) : {};
+
+      // Uma lista ausente precisa virar mensagem, não estado inválido: guardar
+      // `undefined` em `roles` faria o `roles.map()` da renderização seguinte
+      // derrubar o formulário inteiro, e um <select> vazio e mudo não diria ao
+      // admin o que houve.
+      if (!body.roles?.length) {
+        setError("Não foi possível carregar os papéis. Recarregue a página.");
         return;
       }
-      const body = await response.json();
+
       setRoles(body.roles);
-      if (body.roles.length > 0) {
-        setRole(body.roles.find((r) => r.key === "colaborador")?.key ?? body.roles[0].key);
-      }
+      setRole(body.roles.find((r) => r.key === "colaborador")?.key ?? body.roles[0].key);
     }
     loadRoles();
   }, []);
@@ -2668,7 +2789,7 @@ export default function NewUserForm() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível cadastrar o colaborador.");
       return;
     }
@@ -2682,8 +2803,14 @@ export default function NewUserForm() {
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(inviteUrl);
-    toast.success("Link copiado.");
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      toast.success("Link copiado.");
+    } catch {
+      // A área de transferência é negada em contexto não seguro e quando o
+      // usuário recusa a permissão. Sem este aviso, o admin acha que copiou.
+      toast.error("Não foi possível copiar. Selecione o link e copie à mão.");
+    }
   }
 
   return (
@@ -2957,7 +3084,7 @@ export default function AcceptInviteForm({ token, name, roleName }) {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível concluir o cadastro.");
       return;
     }
@@ -3192,7 +3319,7 @@ export default function ReviewForm() {
     setIsSubmitting(false);
 
     if (!response.ok) {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setError(body.message ?? "Não foi possível enviar sua avaliação.");
       return;
     }

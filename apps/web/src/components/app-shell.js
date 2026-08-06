@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import Button from "./ui/button";
 import LogoutButton from "./logout-button";
+import NavLink from "./nav-link";
 
 // Estes três são a nav inferior do celular — o esqueleto escolhido fixou três itens.
 const PRIMARY_NAV = [
@@ -26,26 +28,34 @@ export default function AppShell({
 
   return (
     <div className="flex min-h-full flex-1 flex-col lg:flex-row">
+      {/* Primeiro elemento focável da página: sem ele, chegar ao conteúdo pelo
+          teclado custa a marca, o CTA, quatro links e o botão de sair. */}
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-full focus:bg-brand focus:px-5 focus:text-sm focus:font-bold focus:text-on-brand"
+      >
+        Pular para o conteúdo
+      </a>
+
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface p-4 lg:flex">
         <p className="mb-6 font-display text-xl font-extrabold text-brand">WeFood</p>
-        <Link
-          href="/visitas/nova"
-          className="mb-6 rounded-full bg-brand px-4 py-3 text-center text-sm font-bold text-on-brand hover:bg-brand-hover"
-        >
+        <Button as={Link} href="/visitas/nova" className="mb-6 w-full text-center">
           Registrar visita
-        </Link>
-        <nav className="flex flex-col gap-1">
+        </Button>
+        <nav aria-label="Navegação lateral" className="flex flex-col gap-1">
           {sidebarItems.map((item) => (
-            <Link
+            <NavLink
               key={item.href}
               href={item.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-surface-2"
+              activeClassName="bg-brand-tint font-bold text-brand"
+              inactiveClassName="font-medium text-muted hover:text-ink"
             >
               <span aria-hidden="true" className="mr-2">
                 {item.icon}
               </span>
               {item.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
@@ -59,23 +69,27 @@ export default function AppShell({
         <LogoutButton />
       </header>
 
-      <main className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">{children}</main>
+      <main id="conteudo" className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
+        {children}
+      </main>
 
       <nav
         aria-label="Navegação principal"
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {PRIMARY_NAV.map((item) => (
-          <Link
+          <NavLink
             key={item.href}
             href={item.href}
-            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium text-muted"
+            className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs"
+            activeClassName="font-bold text-brand"
+            inactiveClassName="font-medium text-muted"
           >
             <span aria-hidden="true" className="text-lg">
               {item.icon}
             </span>
             {item.label}
-          </Link>
+          </NavLink>
         ))}
       </nav>
     </div>
